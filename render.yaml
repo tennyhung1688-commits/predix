@@ -23,13 +23,11 @@ services:
       # 从 Supabase Dashboard → Project Settings → Database → Connection string
       # 注意：要用 Session pooler 的连接串（端口 6543）
       - key: DATABASE_URL
-        sync: false
         value: postgresql://postgres:143701Hung..@db.roupvokufcuncygiasyo.supabase.co:5432/postgres?sslmode=no-verify
 
       # ---- JWT 密钥（自己在终端生成） ----
       # node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
       - key: JWT_SECRET
-        sync: false
         generateValue: true  # Render 会自动生成一个随机值
 
       # ---- CORS 允许的前端域名 ----
@@ -50,19 +48,14 @@ services:
 
       # ---- 平台钱包（从 .env 复制真实值） ----
       - key: PLATFORM_WALLET_ADDRESS
-        sync: false
         value: "0x8db0B1651ba9D83F5Ba1db5d6F2c01306E1CFcc6"
       - key: PLATFORM_WALLET_PRIVATE_KEY
-        sync: false
         value: "0x47b555878b67b8f8432657be3319a8d5f1d6d85160c8de170b1d076f8e185ce1"
       - key: PLATFORM_POLY_API_KEY
-        sync: false
         value: "59c52a8b-05ea-ddec-c61f-eb65f109b9e6"
       - key: PLATFORM_POLY_API_SECRET
-        sync: false
         value: "BRIUb6lej_m8ieA-sSAr0FJLsaakPkFMyvQrn8naQuE="
       - key: PLATFORM_POLY_PASSPHRASE
-        sync: false
         value: "13a0868f3898dae122d2681f284ef7985b2a0df2df2be54aca2613e67d5c6e04"
       - key: PLATFORM_SIGNATURE_TYPE
         value: "0"
