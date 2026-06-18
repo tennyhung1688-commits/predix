@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrediX vs Polymarket — 产品对比分析</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --bg-card: #111827;
+    --bg-hover: #1a2236;
+    --border: #1e293b;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --blue: #4f8fff;
+    --purple: #a855f7;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --cyan: #22d3ee;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+  }
+  .subtitle { color: var(--text-muted); margin-bottom: 2rem; font-size: 1.05rem; }
+
+  /* 对比表 */
+  .cmp-grid {
+    display: grid;
+    grid-template-columns: 180px 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .cmp-grid > div {
+    background: var(--bg-card);
+    padding: 14px 18px;
+    font-size: 0.875rem;
+  }
+  .cmp-grid .header {
+    background: linear-gradient(135deg, #1a2236, #111827);
+    color: var(--text);
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: center;
+  }
+  .cmp-grid .label {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+  }
+  .cmp-grid .predix { border-left: 3px solid var(--blue); }
+  .cmp-grid .poly { border-left: 3px solid #6366f1; }
+
+  /* 徽章 */
+  .badge { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; padding: 3px 10px; border-radius: 99px; font-weight: 600; }
+  .badge-win { background: rgba(34,197,94,0.1); color: var(--green); }
+  .badge-lose { background: rgba(239,68,68,0.1); color: var(--red); }
+  .badge-neutral { background: rgba(148,163,184,0.1); color: var(--text-muted); }
+  .badge-star { background: rgba(245,158,11,0.1); color: var(--amber); }
+  .badge-info { background: rgba(79,143,255,0.1); color: var(--blue); }
+
+  /* 分段 */
+  .section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 1.5rem;
+  }
+  .section h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 1.2rem 0 0.6rem;
+    color: var(--text-muted);
+  }
+
+  /* 功能列表 */
+  .feature-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.02);
+  }
+  .feature-item .icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+  /* 雷达标签 */
+  .strength-bars { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+  .strength-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; }
+  .strength-row span:first-child { width: 100px; text-align: right; color: var(--text-muted); }
+  .bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 1s ease; }
+  .bar-predix { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+  .bar-poly { background: linear-gradient(90deg, #6366f1, #818cf8); }
+
+  /* 总结卡片 */
+  .takeaway {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  .takeaway-card {
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+  .takeaway-card.green { border-color: rgba(34,197,94,0.2); background: rgba(34,197,94,0.03); }
+  .takeaway-card.blue { border-color: rgba(79,143,255,0.2); background: rgba(79,143,255,0.03); }
+  .takeaway-card h3 { margin: 0 0 0.75rem !important; font-size: 1rem !important; color: var(--text) !important; }
+  .takeaway-card ul { padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.8; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    .cmp-grid { grid-template-columns: 1fr; }
+    .cmp-grid .label { display: none; }
+    .cmp-grid .predix::before { content: "PrediX"; display: block; font-size: 0.7rem; color: var(--blue); font-weight: 700; margin-bottom: 4px; }
+    .cmp-grid .poly::before { content: "Polymarket"; display: block; font-size: 0.7rem; color: #6366f1; font-weight: 700; margin-bottom: 4px; }
+    .feature-list, .takeaway { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>PrediX vs Polymarket</h1>
+<p class="subtitle">预测市场产品对比分析 · 2026 年 6 月</p>
+
+<!-- ====== 基本信息对比 ====== -->
+<div class="cmp-grid">
+  <div class="header"></div>
+  <div class="header predix" style="color:var(--blue)">🦅 PrediX</div>
+  <div class="header poly" style="color:#818cf8">🌐 Polymarket</div>
+
+  <div class="label">定位</div>
+  <div class="predix">预测市场交易平台<br><span style="color:var(--text-muted);font-size:0.75rem">"专业可信，数据驱动"</span></div>
+  <div class="poly">全球最大预测市场<br><span style="color:var(--text-muted);font-size:0.75rem">"The world's largest prediction market"</span></div>
+
+  <div class="label">阶段</div>
+  <div class="predix"><span class="badge badge-neutral">🔧 本地开发中</span></div>
+  <div class="poly"><span class="badge badge-win">🚀 已上线运营</span></div>
+
+  <div class="label">语言</div>
+  <div class="predix">中文为主 + 英文（中英双语切换）</div>
+  <div class="poly">多语言（含简体中文）</div>
+
+  <div class="label">平台</div>
+  <div class="predix">Web (React + TypeScript)，桌面端为主</div>
+  <div class="poly">Web 端，全球可访问</div>
+
+  <div class="label">交易量</div>
+  <div class="predix"><span style="color:var(--text-muted)">本地演示数据</span></div>
+  <div class="poly"><span class="badge badge-star">$2B+ 累计成交量</span></div>
+
+  <div class="label">变现</div>
+  <div class="predix">0.5% 交易手续费</div>
+  <div class="poly"><span style="color:var(--text-muted)">零交易费（通过做市/协议层获利）</span></div>
+
+  <div class="label">费率</div>
+  <div class="predix">固定 0.5% spread fee</div>
+  <div class="poly">无明确交易费</div>
+</div>
+
+<!-- ====== 设计风格对比 ====== -->
+<div class="section">
+  <h2>🎨 设计风格</h2>
+  <div class="feature-list">
+    <div class="feature-item">
+      <span class="icon" style="color:var(--blue)">◆</span>
+      <div>
+        <strong>PrediX</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem;margin-top:2px">
+          暗色主题 · 蓝紫渐变品牌色 · 金融终端风格<br>
+          黄金点缀游戏化元素 · K线/概率曲线数据可视化<br>
+          冷静克制，信息密度高，不喧哗
+        </p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon" style="color:#818cf8">◆</span>
+      <div>
+        <strong>Polymarket</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem;margin-top:2px">
+          浅色为主 · 卡片式设计 · 大号百分比突出<br>
+          国徽/图标增强赛事识别 · 直观的看涨/看跌按钮<br>
+          突出热门话题和实时赛事
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 核心功能对比 ====== -->
+<div class="section">
+  <h2>⚙️ 核心交易功能</h2>
+  <div class="cmp-grid" style="margin-top:1rem">
+    <div class="label">二元交易</div>
+    <div class="predix"><span class="badge badge-win">✓ 买/卖</span> 概率定价</div>
+    <div class="poly"><span class="badge badge-win">✓ 是/否</span> 百分比定价</div>
+
+    <div class="label">限价单</div>
+    <div class="predix"><span class="badge badge-win">✓</span> GTC / IOC / FOK / Post-Only</div>
+    <div class="poly"><span style="color:var(--text-muted)">— 标准订单簿</span></div>
+
+    <div class="label">市价单</div>
+    <div class="predix"><span class="badge badge-win">✓</span> MARKET_FAK 模式</div>
+    <div class="poly"><span style="color:var(--text-muted)">— 即时成交</span></div>
+
+    <div class="label">订单簿</div>
+    <div class="predix"><span class="badge badge-win">✓</span> WebSocket 实时 + 降级轮询</div>
+    <div class="poly"><span class="badge badge-win">✓</span> 实时订单簿</div>
+
+    <div class="label">组合投注</div>
+    <div class="predix"><span class="badge badge-lose">✗ 不支持</span></div>
+    <div class="poly"><span class="badge badge-star">✓ World Cup Combo</span></div>
+
+    <div class="label">衍生盘口</div>
+    <div class="predix"><span class="badge badge-lose">✗ 无</span></div>
+    <div class="poly"><span class="badge badge-star">✓ 点差/大小球/多重结果</span></div>
+
+    <div class="label">时间轴概率</div>
+    <div class="predix"><span class="badge badge-lose">✗ 无</span></div>
+    <div class="poly"><span class="badge badge-win">✓ 按截止日期拆分</span></div>
+
+    <div class="label">K线/图表</div>
+    <div class="predix"><span class="badge badge-info">规划中</span> 金融级图表</div>
+    <div class="poly"><span style="color:var(--text-muted)">— 概率展示为主</span></div>
+  </div>
+</div>
+
+<!-- ====== PrediX 独有功能 ====== -->
+<div class="section">
+  <h2>🦅 PrediX 独有功能</h2>
+  <div class="feature-list">
+    <div class="feature-item">
+      <span class="icon">🎮</span>
+      <div>
+        <strong>游戏化等级系统</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">6 级段位：新手→学徒→交易者→专业→鲸鱼→传奇<br>经验值(XP)、连续交易(Streak)、进度条动画</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">🏆</span>
+      <div>
+        <strong>成就系统</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">4 种稀有度（普通/稀有/史诗/传说），带发光特效</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">🐋</span>
+      <div>
+        <strong>聪明钱追踪</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">鲸鱼交易监控、聪明钱包排行、买卖信号推送</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">📊</span>
+      <div>
+        <strong>市场情绪概览</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">看涨/看跌/中性情绪占比，牛熊视觉化</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">💰</span>
+      <div>
+        <strong>余额系统</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">平台钱包、USDC充值/提现、交易历史</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">🖥️</span>
+      <div>
+        <strong>管理后台</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">用户概览、交易管理、提现审核、结算管理</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">⚽</span>
+      <div>
+        <strong>世界杯专题页</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">2026 世界杯焦点市场集中展示</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">🧪</span>
+      <div>
+        <strong>演示模式</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">模拟交易，不实际消耗资金/上链</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Polymarket 独有功能 ====== -->
+<div class="section">
+  <h2>🌐 Polymarket 独有功能</h2>
+  <div class="feature-list">
+    <div class="feature-item">
+      <span class="icon">💬</span>
+      <div>
+        <strong>社区评论/讨论区</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">每个市场下方有用户讨论区，可看交易者观点</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">📦</span>
+      <div>
+        <strong>组合投注 (Combo)</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">多个预测合并投注，博取更高回报</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">📐</span>
+      <div>
+        <strong>衍生盘口</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">点差(Spread)、大小球(Over/Under)、比分等</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">📈</span>
+      <div>
+        <strong>海量市场数据</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">$2B+ 成交量、大量活跃交易者、高流动性</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">🔗</span>
+      <div>
+        <strong>链上透明</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">Polygon 链上结算，完全去中心化</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="icon">🌍</span>
+      <div>
+        <strong>全球品牌认知</strong>
+        <p style="color:var(--text-muted);font-size:0.8rem">知名媒体引用、大量用户基础</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 能力雷达图 ====== -->
+<div class="section">
+  <h2>📡 能力对比</h2>
+  <div class="strength-bars">
+    <div class="strength-row">
+      <span>市场丰富度</span>
+      <div class="bar-track"><div class="bar-fill bar-predix" style="width:45%"></div></div>
+      <div class="bar-track"><div class="bar-fill bar-poly" style="width:95%"></div></div>
+    </div>
+    <div class="strength-row">
+      <span>交易体验</span>
+      <div class="bar-track"><div class="bar-fill bar-predix" style="width:70%"></div></div>
+      <div class="bar-track"><div class="bar-fill bar-poly" style="width:60%"></div></div>
+    </div>
+    <div class="strength-row">
+      <span>数据可视化</span>
+      <div class="bar-track"><div class="bar-fill bar-predix" style="width:60%"></div></div>
+      <div class="bar-track"><div class="bar-fill bar-poly" style="width:50%"></div></div>
+    </div>
+    <div class="strength-row">
+      <span>社交/社区</span>
+      <div class="bar-track"><div class="bar-fill bar-predix" style="width:10%"></div></div>
+      <div class="bar-track"><div class="bar-fill bar-poly" style="width:75%"></div></div>
+    </div>
+    <div class="strength-row">
+      <span>游戏化</span>
+      <div class="bar-track"><div class="bar-fill bar-predix" style="width:85%"></div></div>
+      <div class="bar-track"><div class="bar-fill bar-poly" style="width:5%"></div></div>
+    </div>
+    <div class="strength-row">
+      <span>流动性</span>
+      <div class="bar-track"><div class="bar-fill bar-predix" style="width:5%"></div></div>
+      <div class="bar-track"><div class="bar-fill bar-poly" style="width:95%"></div></div>
+    </div>
+    <div class="strength-row">
+      <span>中文本地化</span>
+      <div class="bar-track"><div class="bar-fill bar-predix" style="width:90%"></div></div>
+      <div class="bar-track"><div class="bar-fill bar-poly" style="width:50%"></div></div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:0.75rem;font-size:0.7rem;color:var(--text-muted)">
+    <span style="color:var(--blue);font-weight:600">← PrediX</span>
+    <span style="color:#818cf8;font-weight:600">Polymarket →</span>
+  </div>
+</div>
+
+<!-- ====== 总结与建议 ====== -->
+<div class="takeaway">
+  <div class="takeaway-card green">
+    <h3>✅ PrediX 的优势</h3>
+    <ul>
+      <li><strong>游戏化体系</strong> — 等级、成就、连胜机制是 Polymarket 完全没有的差异化竞争力</li>
+      <li><strong>聪明钱追踪</strong> — 鲸鱼监控 + 交易信号是高频交易者的刚需</li>
+      <li><strong>专业交易工具</strong> — GTC/IOC/FOK/Post-Only 多订单类型 + 订单簿实时推送</li>
+      <li><strong>中文本地化</strong> — 深度原生中文体验，Polymarket 中文版只是翻译层</li>
+      <li><strong>平台钱包</strong> — 内置充值/提现/余额管理，降低链上操作门槛</li>
+    </ul>
+  </div>
+  <div class="takeaway-card blue">
+    <h3>⚠️ 与 Polymarket 的差距</h3>
+    <ul>
+      <li><strong>市场流动性</strong> — 从零开始，这是最大的护城河差距</li>
+      <li><strong>社交/社区功能</strong> — 缺少讨论区，用户无法互相交流</li>
+      <li><strong>衍生盘口</strong> — 缺少组合投注、点差、大小球等高级玩法</li>
+      <li><strong>链上透明度</strong> — Polymarket 完全链上结算，信任度高</li>
+      <li><strong>品牌认知</strong> — 需要从零建立市场信任</li>
+      <li><strong>市场多样性</strong> — 当前分类较少，缺少科技、地缘等长尾市场</li>
+    </ul>
+  </div>
+</div>
+
+<hr>
+
+<div class="section" style="text-align:center">
+  <h2 style="justify-content:center">🎯 竞争策略建议</h2>
+  <p style="color:var(--text-muted);max-width:700px;margin:0 auto;font-size:0.9rem;line-height:1.8">
+    PrediX 不应与 Polymarket 正面争夺全球市场，而应
+    <strong style="color:var(--blue)">聚焦中文预测市场赛道</strong>，
+    以<strong style="color:var(--purple)">游戏化 + 聪明钱追踪</strong>为差异化核心，
+    打造"<strong style="color:var(--amber)">华人预测交易社区</strong>"。
+    短期补足社区评论功能和衍生盘口，中期通过游戏化裂变拉新，
+    长期沉淀数据形成独特的聪明钱信号护城河。
+  </p>
+</div>
+
+</div>
+</body>
+</html>

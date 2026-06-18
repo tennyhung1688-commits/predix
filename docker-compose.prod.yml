@@ -1,0 +1,183 @@
+# ============================================================
+# PrediX 生产环境 Docker Compose
+# 包含 Nginx 反向代理 + Let's Encrypt SSL 自动续期
+#
+# 首次部署步骤:
+#   1. 填写环境变量（复制 .env.example 为 .env 并填入真实值）
+#   2. 把 nginx/nginx.conf 中的「你的域名.com」替换为实际域名
+#   3. 申请 SSL 证书: ./nginx/init-letsencrypt.sh 你的域名.com
+#   4. 启动: docker compose -f docker-compose.prod.yml up -d
+# ============================================================
+
+services:
+  # ---- PostgreSQL 数据库 ----
+  # 如果使用外部云数据库（Supabase / CloudBase / RDS），可以删除此服务
+  postgres:
+    image: postgres:16-alpine
+    container_name: predix-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-predix}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?请设置 POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-predix_db}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - predix-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-predix} -d ${POSTGRES_DB:-predix_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # 生产环境建议不暴露端口到宿主机
+    # ports:
+    #   - "5432:5432"
+
+  # ---- 后端 API ----
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: predix-backend
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - TRUST_PROXY=true
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # 如果使用 docker-compose 内置的 postgres，使用此 URL:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-predix}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-predix_db}
+      # 如果使用外部云数据库，取消下面注释并注释上面:
+      # - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET:?请设置 JWT_SECRET}
+      - POLYMARKET_GAMMA_API=${POLYMARKET_GAMMA_API:-https://gamma-api.polymarket.com}
+      - POLYMARKET_CLOB_API=${POLYMARKET_CLOB_API:-https://clob.polymarket.com}
+      - POLYMARKET_DATA_API=${POLYMARKET_DATA_API:-https://data-api.polymarket.com}
+      - POLYMARKET_WS=${POLYMARKET_WS:-wss://ws-subscriptions-clob.polymarket.com/ws/market}
+      - FEE_RATE=${FEE_RATE:-0.005}
+      # 生产环境填入实际域名
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://你的域名.com}
+      - PLATFORM_WALLET_ADDRESS=${PLATFORM_WALLET_ADDRESS}
+      - PLATFORM_WALLET_PRIVATE_KEY=${PLATFORM_WALLET_PRIVATE_KEY}
+      - PLATFORM_POLY_API_KEY=${PLATFORM_POLY_API_KEY:-}
+      - PLATFORM_POLY_API_SECRET=${PLATFORM_POLY_API_SECRET:-}
+      - PLATFORM_POLY_PASSPHRASE=${PLATFORM_POLY_PASSPHRASE:-}
+      - PLATFORM_SIGNATURE_TYPE=${PLATFORM_SIGNATURE_TYPE:-0}
+      - PLATFORM_FUNDER_ADDRESS=${PLATFORM_FUNDER_ADDRESS:-}
+      - PLATFORM_FEE_MODE=${PLATFORM_FEE_MODE:-spread}
+      - RELAYER_API_KEY=${RELAYER_API_KEY:-}
+      - RELAYER_API_KEY_ADDRESS=${RELAYER_API_KEY_ADDRESS:-}
+      - MIN_WITHDRAW_AMOUNT=${MIN_WITHDRAW_AMOUNT:-10}
+      - BACKUP_DIR=/app/backups
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+      - BACKUP_MAX_COUNT=${BACKUP_MAX_COUNT:-50}
+    volumes:
+      - backend-backups:/app/backups
+    restart: unless-stopped
+    networks:
+      - predix-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ---- 数据库定时备份 ----
+  backup:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: predix-backup
+    command: ["node", "-e", "setInterval(() => { const now = new Date(); if (now.getUTCHours() === 3 && now.getUTCMinutes() < 5) { require('./src/scripts/backup'); } }, 5 * 60 * 1000)"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-predix}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-predix_db}
+      - BACKUP_DIR=/app/backups
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+      - BACKUP_MAX_COUNT=${BACKUP_MAX_COUNT:-50}
+    volumes:
+      - backend-backups:/app/backups
+    restart: unless-stopped
+    networks:
+      - predix-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  # ---- 前端 (Next.js) ----
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: predix-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=https://你的域名.com/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - predix-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ---- Nginx 反向代理 + HTTPS ----
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: predix-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot-www:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt:ro
+    restart: unless-stopped
+    networks:
+      - predix-network
+    depends_on:
+      - frontend
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ---- Certbot SSL 自动续期 ----
+  certbot:
+    image: certbot/certbot:latest
+    container_name: predix-certbot
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    entrypoint: "/bin/sh -c"
+    command:
+      - |
+        trap exit TERM
+        while :; do
+          certbot renew --webroot -w /var/www/certbot --quiet --post-hook "nginx -s reload"
+          sleep 12h
+        done
+    restart: unless-stopped
+    networks:
+      - predix-network
+
+volumes:
+  postgres-data:
+  backend-backups:
+  certbot-www:
+  certbot-certs:
+
+networks:
+  predix-network:
+    driver: bridge

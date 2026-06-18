@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String   @id @default(uuid())
+  walletAddress   String   @unique
+  role            String   @default("user") // "user" | "admin"
+  balance         Float    @default(0)   // 平台内 USDC 余额
+  lockedBalance   Float    @default(0)   // 挂单锁定的余额
+  totalDeposited  Float    @default(0)
+  totalWithdrawn  Float    @default(0)
+  tradeVolume     Float    @default(0)
+  feePaid         Float    @default(0)
+  referralCode    String?  @unique        // 推荐码
+  referredBy      String?                 // 邀请人 ID
+  referralEarnings Float   @default(0)    // 累计推荐收益
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  deposits           Deposit[]
+  withdrawals        Withdraw[]
+  trades             Trade[]
+  transactions       Transaction[]
+  positions          Position[]
+  settlements        Settlement[]
+  comboBets          ComboBet[]
+  comments           Comment[]
+  commentLikes       CommentLike[]
+  commentReports     CommentReport[]
+  priceAlerts        PriceAlert[]
+  invitedUsers       User[]              @relation("ReferralRelation")
+  inviter            User?               @relation("ReferralRelation", fields: [referredBy], references: [id])
+  referralEarningsRec ReferralEarning[]
+}
+
+model ReferralEarning {
+  id            String   @id @default(uuid())
+  referrerId    String                       // 邀请人 ID
+  referredId    String                       // 被邀请人 ID
+  tradeId       String?                      // 关联的交易 ID
+  tradeFee      Float                        // 原始交易手续费
+  commission    Float                        // 佣金金额
+  rate          Float    @default(0.2)       // 佣金比例
+  status        String   @default("pending") // pending, credited, withdrawn
+  createdAt     DateTime @default(now())
+  creditedAt    DateTime?
+
+  referrer      User     @relation(fields: [referrerId], references: [id])
+}
+
+model PlatformWallet {
+  id         String   @id @default(uuid())
+  address    String   @unique
+  label      String   @default("main")
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Deposit {
+  id          String   @id @default(uuid())
+  userId      String
+  txHash      String   @unique
+  amount      Float
+  status      String   @default("pending") // pending, confirmed, failed
+  createdAt   DateTime @default(now())
+  confirmedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Withdraw {
+  id          String   @id @default(uuid())
+  userId      String
+  toAddress   String
+  amount      Float
+  fee         Float    @default(0)
+  status      String   @default("pending") // pending, processing, completed, failed
+  txHash      String?
+  createdAt   DateTime @default(now())
+  processedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Trade {
+  id                String   @id @default(uuid())
+  userId            String
+  tokenId           String
+  side              String   // BUY / SELL
+  size              Float
+  originalPrice     Float    // 用户看到的原始价格
+  executePrice      Float    // 平台实际执行价格（含差价）
+  spreadFee         Float    // 差价收入 = abs(originalPrice - executePrice) * size
+  polymarketOrderId String?
+  status            String   @default("pending") // pending, filled, cancelled, failed
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // TRADE_BUY, TRADE_SELL, DEPOSIT, WITHDRAW, FEE
+  amount    Float
+  balance   Float    // 交易后余额
+  tradeId   String?
+  desc      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model PlatformRevenue {
+  id        String   @id @default(uuid())
+  source    String   // TRADE_FEE, SPREAD
+  amount    Float
+  tradeId   String?
+  userId    String?
+  createdAt DateTime @default(now())
+}
+
+// ========== 持仓 & 结算 ==========
+
+model Position {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenId   String   // Polymarket token ID
+  marketId  String   // 对应的市场 ID（方便结算时查找）
+  side      String   // BUY 的 token 侧标识 (如 "Yes"/"No" 或 token slug)
+  size      Float    // 持仓份数
+  avgPrice  Float    // 加权平均买入价
+  totalCost Float    // 总买入成本
+  status    String   @default("open") // open, settled, closed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, tokenId])
+}
+
+model MarketResolution {
+  id          String   @id @default(uuid())
+  marketId    String   @unique // Polymarket condition ID
+  question    String?  // 市场问题
+  outcomeTokenId String? // 获胜的 token ID
+  outcomeLabel   String? // 获胜选项标签 (如 "Yes", "No")
+  status      String   @default("resolved") // resolved, disputed
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Settlement {
+  id          String   @id @default(uuid())
+  userId      String
+  resolutionId String
+  tokenId     String
+  marketId    String
+  shares      Float    // 持仓份数
+  payoutPerShare Float  @default(1.0) // 每份赔付（通常是 1 USDC）
+  totalPayout Float    // 总赔付 = shares * payoutPerShare
+  totalCost   Float    // 买入总成本
+  profit      Float    // 盈利 = totalPayout - totalCost
+  status      String   @default("completed") // completed, pending
+  settledAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ========== 组合押注 ==========
+
+model ComboBet {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String?  // 用户可自定义名称
+  status        String   @default("pending") // pending, filled, partial, failed, cancelled
+  totalOdds     Float    // 综合赔率（各腿赔率乘积）
+  totalStake    Float    // 总投注金额
+  potentialPayout Float  // 预期回报 = totalStake * totalOdds
+  actualPayout  Float    @default(0)
+  filledAt      DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User        @relation(fields: [userId], references: [id])
+  legs          ComboLeg[]
+}
+
+model ComboLeg {
+  id          String   @id @default(uuid())
+  comboBetId  String
+  tokenId     String   // Polymarket token ID
+  marketId    String   // 市场 condition ID
+  question    String   // 市场问题（冗余存储便于展示）
+  outcome     String   // "Yes" / "No"
+  odds        Float    // 当前赔率（执行时价格）
+  price       Float    // 执行价格
+  size        Float    // 数量
+  status      String   @default("pending") // pending, filled, failed
+  polymarketOrderId String?
+  tradeId     String?
+  createdAt   DateTime @default(now())
+  filledAt    DateTime?
+
+  comboBet    ComboBet @relation(fields: [comboBetId], references: [id], onDelete: Cascade)
+}
+
+// ========== 社区评论 ==========
+
+model Comment {
+  id        String    @id @default(uuid())
+  userId    String
+  marketId  String    // Polymarket condition ID
+  content   String
+  parentId  String?   // 回复的评论 ID（支持嵌套）
+  likes     Int       @default(0)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user      User         @relation(fields: [userId], references: [id])
+  parent    Comment?     @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[]    @relation("CommentReplies")
+  userLikes CommentLike[]
+  reports   CommentReport[]
+}
+
+// 点赞记录（防重复刷赞）
+model CommentLike {
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+}
+
+// 评论举报（防重复举报）
+model CommentReport {
+  id        String   @id @default(uuid())
+  userId    String
+  commentId String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+}
+
+// ========== 价格提醒 ==========
+
+model PriceAlert {
+  id          String   @id @default(uuid())
+  userId      String
+  tokenId     String
+  marketId    String   // 市场 condition ID
+  question    String?  // 市场问题（冗余展示）
+  targetPrice Float    // 目标价格
+  direction   String   // "above" | "below" — 高于/低于目标价时触发
+  triggered   Boolean  @default(false)
+  triggeredAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}

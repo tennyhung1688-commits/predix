@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluidity - 后端管理面板</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border-bottom:1px solid #334155;padding:20px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.header .logo{width:38px;height:38px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.header h1{font-size:20px;font-weight:700}
+.header .badge{background:#059669;color:#d1fae5;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;margin-left:auto}
+.container{max-width:1100px;margin:0 auto;padding:28px 24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:28px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:18px;transition:border-color .2s}
+.card:hover{border-color:#475569}
+.card-label{font-size:12px;color:#94a3b8;margin-bottom:4px}
+.card-value{font-size:22px;font-weight:700;color:#f1f5f9}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.section-title{font-size:15px;font-weight:700;color:#e2e8f0;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #334155}
+
+/* 服务模块 */
+.service-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.service-item{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px 14px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.service-item:hover{border-color:#3b82f6;background:#1e3a5f;transform:translateY(-2px);box-shadow:0 4px 20px rgba(59,130,246,.15)}
+.service-item .click-hint{position:absolute;top:6px;right:8px;font-size:10px;color:#64748b;opacity:0;transition:opacity .2s}
+.service-item:hover .click-hint{opacity:1}
+.service-icon{font-size:26px;margin-bottom:6px}
+.service-name{font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:3px}
+.service-desc{font-size:11px;color:#64748b}
+
+/* 端点列表 */
+.endpoint-item{display:flex;align-items:center;padding:10px 14px;background:#1e293b;border:1px solid #334155;border-radius:8px;margin-bottom:6px;transition:background .2s;cursor:pointer;font-size:13px}
+.endpoint-item:hover{background:#273548}
+.endpoint-method{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;margin-right:10px;min-width:38px;text-align:center}
+.method-GET{background:#22c55e;color:#052e16}
+.method-POST{background:#3b82f6;color:#dbeafe}
+.method-DELETE{background:#ef4444;color:#fee2e2}
+.endpoint-path{font-family:'SF Mono','Fira Code',monospace;font-size:13px;color:#93c5fd;flex:1}
+.endpoint-name{font-size:12px;color:#94a3b8;margin-left:auto}
+.endpoint-auth{font-size:10px;padding:2px 6px;border-radius:3px;margin-left:6px}
+.auth-required{background:#fbbf24;color:#78350f}
+.auth-none{background:#6b7280;color:#e5e7eb}
+.auth-admin{background:#ec4899;color:#fce7f3}
+
+/* 详情面板 */
+.detail-panel{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;margin-bottom:24px;animation:slideDown .3s ease}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.detail-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #334155}
+.detail-header .detail-icon{font-size:30px}
+.detail-header h2{font-size:17px;font-weight:700}
+.detail-header .detail-status{margin-left:auto;font-size:11px;padding:4px 10px;border-radius:12px;background:#065f46;color:#a7f3d0}
+.detail-body{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:768px){.detail-body{grid-template-columns:1fr}}
+.detail-section{background:#0f172a;border-radius:8px;padding:14px}
+.detail-section h3{font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.detail-section p{font-size:13px;color:#cbd5e1;line-height:1.6}
+.detail-section ul{list-style:none}
+.detail-section li{font-size:12px;color:#cbd5e1;padding:3px 0;display:flex;align-items:flex-start;gap:6px}
+.detail-section li::before{content:'▸';color:#3b82f6;font-size:10px;flex-shrink:0;margin-top:2px}
+.detail-section .code-block{background:#0a0f1a;border:1px solid #1e293b;border-radius:6px;padding:10px;font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:#93c5fd;margin-top:6px;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+
+/* API 测试 */
+.test-section{margin-top:28px}
+.test-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.test-input{flex:1;min-width:200px;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:13px;font-family:'SF Mono','Fira Code',monospace}
+.test-input:focus{outline:none;border-color:#3b82f6}
+.test-btn,.back-btn{padding:8px 14px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s;border:none}
+.test-btn{background:#2563eb;color:#fff}
+.test-btn:hover{background:#1d4ed8}
+.back-btn{background:#334155;color:#e2e8f0;border:1px solid #475569}
+.back-btn:hover{background:#475569}
+.test-result{display:none;margin-top:12px;background:#0a0f1a;border:1px solid #334155;border-radius:8px;padding:16px}
+.test-result.visible{display:block}
+.test-result pre{font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:#94a3b8;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.test-result .result-status{font-size:12px;font-weight:600;margin-bottom:8px}
+.result-ok{color:#22c55e}.result-err{color:#ef4444}
+.welcome-banner{background:linear-gradient(135deg,#1e3a5f,#1e293b);border:1px solid #334155;border-radius:12px;padding:22px;margin-bottom:22px;text-align:center}
+.welcome-banner h2{font-size:17px;margin-bottom:4px}
+.welcome-banner p{font-size:13px;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">📊</div>
+  <div>
+    <h1>Fluidity API 管理面板</h1>
+    <div style="font-size:12px;color:#94a3b8;margin-top:2px">Polymarket 中文预测市场 · 后端管理中心</div>
+  </div>
+  <span class="badge"><span class="status-dot"></span>运行中</span>
+  <button class="back-btn" onclick="showMainView()" id="backBtn" style="display:none">🏠 首页</button>
+  <button class="test-btn" onclick="loadStats()">🔄 刷新</button>
+</div>
+
+<div class="container">
+  <!-- 主视图 -->
+  <div id="mainView">
+    <div class="welcome-banner">
+      <h2>👋 欢迎使用 Fluidity 后端管理面板</h2>
+      <p>点击下方服务模块查看详情 · 底部可测试 API 端点</p>
+    </div>
+    <div class="grid" id="statsGrid">
+      <div class="card"><div class="card-label">⏱ 运行时间</div><div class="card-value" id="uptime">--</div></div>
+      <div class="card"><div class="card-label">🧠 内存使用</div><div class="card-value" id="memory">--</div></div>
+      <div class="card"><div class="card-label">💻 CPU 负载</div><div class="card-value" id="cpu">--</div></div>
+      <div class="card"><div class="card-label">⚡ Node 版本</div><div class="card-value" id="node">--</div></div>
+      <div class="card"><div class="card-label">🖥 系统空闲</div><div class="card-value" id="freeMem">--</div></div>
+      <div class="card"><div class="card-label">🔢 进程 PID</div><div class="card-value" id="pid">--</div></div>
+    </div>
+
+    <div class="section-title">🛠 后端服务模块 <span style="font-size:11px;color:#64748b;font-weight:400;margin-left:6px">（点击查看详情）</span></div>
+    <div class="service-list" id="serviceList"></div>
+
+    <div class="section-title" style="margin-top:28px">📡 API 端点列表</div>
+    <div id="endpoints"></div>
+
+    <div class="test-section">
+      <div class="section-title">🧪 API 调试工具</div>
+      <div class="test-controls">
+        <input class="test-input" id="testPath" value="/api/health" placeholder="/api/markets">
+        <button class="test-btn" onclick="testEndpoint()">🚀 发送请求</button>
+      </div>
+      <div class="test-result" id="testResult">
+        <div class="result-status" id="testStatus"></div>
+        <pre id="testBody"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详情视图 -->
+  <div id="detailView" style="display:none"></div>
+</div>
+
+<script>
+// 服务模块数据
+const SERVICES = [
+  { id:'translate', icon:'🔤', name:'中文翻译', desc:'自动将 Polymarket 英文数据翻译为中文', file:'src/services/translate.js', features:['模式匹配翻译（高频句式，零延迟）','API 翻译兜底（低频内容）','翻译结果缓存','批量翻译接口','人名/地名/术语专项翻译'] },
+  { id:'proxy', icon:'🌐', name:'API 代理', desc:'代理转发 Polymarket 官方 API', file:'src/services/polymarket.js', features:['市场列表与详情获取','订单簿与价格历史','分类与标签筛选','世界杯专题数据','热门标签与交易记录','指数退避重试（应对 429 限流）'] },
+  { id:'auth', icon:'👤', name:'用户系统', desc:'用户注册、登录与 JWT 认证', file:'src/routes/auth.js', features:['钱包地址自动注册/登录','JWT token 签发与校验','全局用户解析中间件 (extractUser)','演示模式：新用户自动获赠 1000 USDC'] },
+  { id:'trading', icon:'💰', name:'交易处理', desc:'下单、撤单、持仓与结算', file:'src/routes/trading.js', features:['限价单与市价单','订单取消','0.5% 平台价差（收入来源）','下单锁定余额 / 成交扣款','持仓查询','交易流水记录'] },
+  { id:'wallet', icon:'🏦', name:'平台钱包', desc:'Polymarket 链上钱包与余额管理', file:'src/services/wallet.js + balance.js', features:['CLOB v2 SDK 链上交互','L1 签名 (viem) + L2 HMAC 签名','用户虚拟 USDC 余额系统','充值 / 提现','余额锁定/解锁（交易用）'] },
+  { id:'realtime', icon:'📡', name:'实时数据', desc:'WebSocket 实时价格推送', file:'src/services/websocket.js + ws-relay.js', features:['Polymarket WebSocket 长连接','前端 <-> 后端 <-> Polymarket 中继','资产实时价格订阅','自动重连（指数退避）','心跳保活机制','速率限制'] }
+];
+
+// API 端点数据（含方法、鉴权信息）
+const ENDPOINTS = [
+  { method:'GET', path:'/api/health', name:'健康检查', auth:'none' },
+  { method:'GET', path:'/api/markets', name:'市场列表', auth:'none' },
+  { method:'GET', path:'/api/markets/:id', name:'市场详情', auth:'none' },
+  { method:'GET', path:'/api/events', name:'事件列表', auth:'none' },
+  { method:'GET', path:'/api/events/:id', name:'事件详情', auth:'none' },
+  { method:'GET', path:'/api/search?q=', name:'搜索市场', auth:'none' },
+  { method:'GET', path:'/api/categories', name:'分类列表', auth:'none' },
+  { method:'GET', path:'/api/orderbook/:tokenId', name:'订单簿', auth:'none' },
+  { method:'GET', path:'/api/price-history/:tokenId', name:'价格历史', auth:'none' },
+  { method:'GET', path:'/api/trending-tags', name:'热门标签', auth:'none' },
+  { method:'GET', path:'/api/smart-money/whales', name:'鲸鱼追踪', auth:'none' },
+  { method:'GET', path:'/api/smart-money/sentiment', name:'市场情绪', auth:'none' },
+  { method:'POST', path:'/api/auth/login', name:'登录/注册', auth:'none' },
+  { method:'GET', path:'/api/auth/me', name:'用户信息', auth:'required' },
+  { method:'POST', path:'/api/order', name:'下单', auth:'required' },
+  { method:'DELETE', path:'/api/order/:orderId', name:'取消订单', auth:'required' },
+  { method:'GET', path:'/api/orders', name:'订单列表', auth:'required' },
+  { method:'GET', path:'/api/positions', name:'持仓查询', auth:'required' },
+  { method:'GET', path:'/api/balance', name:'余额查询', auth:'required' },
+  { method:'POST', path:'/api/balance/deposit', name:'充值', auth:'required' },
+  { method:'POST', path:'/api/balance/withdraw', name:'提现', auth:'required' },
+  { method:'GET', path:'/api/admin/overview', name:'管理概览', auth:'admin' },
+  { method:'GET', path:'/api/admin/revenue', name:'收益详情', auth:'admin' },
+  { method:'GET', path:'/api/settlements/summary', name:'结算汇总', auth:'required' }
+];
+
+// 渲染端点列表
+function renderEndpoints() {
+  var html = '';
+  ENDPOINTS.forEach(function(ep) {
+    var authLabel = '', authClass = '';
+    if (ep.auth === 'required') { authLabel = '需登录'; authClass = 'auth-required'; }
+    else if (ep.auth === 'admin') { authLabel = '管理员'; authClass = 'auth-admin'; }
+    else { authLabel = '公开'; authClass = 'auth-none'; }
+    html += '<div class="endpoint-item" onclick="testPath(\'' + ep.path + '\')" title="点击测试此端点">' +
+      '<span class="endpoint-method method-' + ep.method + '">' + ep.method + '</span>' +
+      '<span class="endpoint-path">' + ep.path + '</span>' +
+      '<span class="endpoint-auth ' + authClass + '">' + authLabel + '</span>' +
+      '<span class="endpoint-name">' + ep.name + '</span></div>';
+  });
+  document.getElementById('endpoints').innerHTML = html;
+}
+
+// 渲染服务模块列表
+function renderServices() {
+  var html = '';
+  SERVICES.forEach(function(svc) {
+    html += '<div class="service-item" onclick="showDetail(\'' + svc.id + '\')">' +
+      '<div class="click-hint">点击查看 ›</div>' +
+      '<div class="service-icon">' + svc.icon + '</div>' +
+      '<div class="service-name">' + svc.name + '</div>' +
+      '<div class="service-desc">' + svc.desc + '</div></div>';
+  });
+  document.getElementById('serviceList').innerHTML = html;
+}
+
+// 显示服务详情
+function showDetail(id) {
+  var svc = SERVICES.find(function(s) { return s.id === id; });
+  if (!svc) return;
+
+  document.getElementById('mainView').style.display = 'none';
+  document.getElementById('backBtn').style.display = 'inline-block';
+
+  var apis = ENDPOINTS.filter(function(ep) {
+    var path = ep.path;
+    if (id === 'translate') return path.indexOf('/api/markets') === 0 || path.indexOf('/api/events') === 0 || path.indexOf('/api/search') === 0;
+    if (id === 'proxy') return path.indexOf('/api/markets') === 0 || path.indexOf('/api/events') === 0 || path.indexOf('/api/search') === 0 || path.indexOf('/api/categories') === 0 || path.indexOf('/api/orderbook') === 0 || path.indexOf('/api/price-history') === 0 || path.indexOf('/api/trending-tags') === 0;
+    if (id === 'auth') return path.indexOf('/api/auth') === 0;
+    if (id === 'trading') return path.indexOf('/api/order') === 0 || path.indexOf('/api/positions') === 0 || path.indexOf('/api/fee') === 0;
+    if (id === 'wallet') return path.indexOf('/api/balance') === 0;
+    if (id === 'realtime') return path.indexOf('/api/realtime') === 0 || path.indexOf('/api/smart-money') === 0;
+    return false;
+  });
+
+  var featuresHtml = svc.features.map(function(f) { return '<li>' + f + '</li>'; }).join('');
+
+  var apisHtml = '';
+  apis.forEach(function(ep) {
+    var authLabel = '', authClass = '';
+    if (ep.auth === 'required') { authLabel = '需登录'; authClass = 'auth-required'; }
+    else if (ep.auth === 'admin') { authLabel = '管理员'; authClass = 'auth-admin'; }
+    else { authLabel = '公开'; authClass = 'auth-none'; }
+    apisHtml += '<div class="endpoint-item" onclick="testPath(\'' + ep.path + '\')" title="点击测试此端点">' +
+      '<span class="endpoint-method method-' + ep.method + '">' + ep.method + '</span>' +
+      '<span class="endpoint-path">' + ep.path + '</span>' +
+      '<span class="endpoint-auth ' + authClass + '">' + authLabel + '</span>' +
+      '<span class="endpoint-name">' + ep.name + '</span></div>';
+  });
+
+  var detailView = document.getElementById('detailView');
+  detailView.innerHTML =
+    '<div class="detail-panel">' +
+      '<div class="detail-header">' +
+        '<div class="detail-icon">' + svc.icon + '</div>' +
+        '<div><h2>' + svc.name + '</h2><div style="font-size:12px;color:#94a3b8">' + svc.file + '</div></div>' +
+        '<span class="detail-status">● 运行中</span>' +
+      '</div>' +
+      '<div style="margin-bottom:16px"><p style="font-size:13px;color:#cbd5e1;line-height:1.6">' + svc.desc + '</p></div>' +
+      '<div class="detail-body">' +
+        '<div class="detail-section">' +
+          '<h3>核心功能</h3>' +
+          '<ul>' + featuresHtml + '</ul>' +
+        '</div>' +
+        '<div class="detail-section">' +
+          '<h3>相关 API 端点</h3>' +
+          (apisHtml || '<p style="font-size:12px;color:#64748b">该模块为内部服务，无直接对外端点</p>') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  detailView.style.display = 'block';
+}
+
+// 返回主视图
+function showMainView() {
+  document.getElementById('mainView').style.display = 'block';
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('backBtn').style.display = 'none';
+}
+
+// 设置测试路径
+function testPath(path) {
+  document.getElementById('testPath').value = path;
+  document.getElementById('testPath').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('testPath').focus();
+}
+
+// 发送 API 测试请求
+async function testEndpoint() {
+  var path = document.getElementById('testPath').value.trim();
+  if (!path) return;
+  var resultDiv = document.getElementById('testResult');
+  var statusDiv = document.getElementById('testStatus');
+  var bodyPre = document.getElementById('testBody');
+
+  resultDiv.classList.add('visible');
+  statusDiv.textContent = '⏳ 请求中...';
+  statusDiv.className = 'result-status';
+  bodyPre.textContent = '';
+
+  try {
+    var resp = await fetch(path);
+    var text = await resp.text();
+    var display;
+    try { display = JSON.stringify(JSON.parse(text), null, 2); }
+    catch(e) { display = text; }
+
+    if (resp.ok) {
+      statusDiv.textContent = '✅ ' + resp.status + ' ' + resp.statusText;
+      statusDiv.className = 'result-status result-ok';
+    } else {
+      statusDiv.textContent = '⚠️ ' + resp.status + ' ' + resp.statusText;
+      statusDiv.className = 'result-status result-err';
+    }
+    bodyPre.textContent = display;
+  } catch(e) {
+    statusDiv.textContent = '❌ 请求失败: ' + e.message;
+    statusDiv.className = 'result-status result-err';
+  }
+}
+
+// 加载系统统计
+async function loadStats() {
+  try {
+    var resp = await fetch('/api/dashboard/stats');
+    var data = await resp.json();
+    document.getElementById('uptime').textContent = data.uptimeDisplay;
+    document.getElementById('memory').textContent = data.memory.usedMB + ' / ' + data.memory.totalMB + ' MB';
+    document.getElementById('cpu').textContent = data.loadAvg.join(' / ');
+    document.getElementById('node').textContent = data.nodeVersion;
+    document.getElementById('freeMem').textContent = data.freeMemGB + ' GB';
+    document.getElementById('pid').textContent = data.pid;
+  } catch(e) { console.error(e); }
+}
+
+// 初始化
+renderServices();
+renderEndpoints();
+loadStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: predix-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-predix}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      - POSTGRES_DB=${POSTGRES_DB:-predix_db}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - predix-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-predix} -d ${POSTGRES_DB:-predix_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: predix-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=${NODE_ENV:-production}
+      - TRUST_PROXY=true
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-predix}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-predix_db}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}
+      - POLYMARKET_GAMMA_API=${POLYMARKET_GAMMA_API:-https://gamma-api.polymarket.com}
+      - POLYMARKET_CLOB_API=${POLYMARKET_CLOB_API:-https://clob.polymarket.com}
+      - POLYMARKET_DATA_API=${POLYMARKET_DATA_API:-https://data-api.polymarket.com}
+      - POLYMARKET_WS=${POLYMARKET_WS:-wss://ws-subscriptions-clob.polymarket.com/ws/market}
+      - FEE_RATE=${FEE_RATE:-0.005}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+      - PLATFORM_WALLET_ADDRESS=${PLATFORM_WALLET_ADDRESS}
+      - PLATFORM_WALLET_PRIVATE_KEY=${PLATFORM_WALLET_PRIVATE_KEY}
+      - PLATFORM_POLY_API_KEY=${PLATFORM_POLY_API_KEY:-}
+      - PLATFORM_POLY_API_SECRET=${PLATFORM_POLY_API_SECRET:-}
+      - PLATFORM_POLY_PASSPHRASE=${PLATFORM_POLY_PASSPHRASE:-}
+      - PLATFORM_SIGNATURE_TYPE=${PLATFORM_SIGNATURE_TYPE:-0}
+      - PLATFORM_FUNDER_ADDRESS=${PLATFORM_FUNDER_ADDRESS:-}
+      - PLATFORM_FEE_MODE=${PLATFORM_FEE_MODE:-spread}
+      - RELAYER_API_KEY=${RELAYER_API_KEY}
+      - RELAYER_API_KEY_ADDRESS=${RELAYER_API_KEY_ADDRESS}
+      - MIN_WITHDRAW_AMOUNT=${MIN_WITHDRAW_AMOUNT:-10}
+      - BACKUP_DIR=/app/backups
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+      - BACKUP_MAX_COUNT=${BACKUP_MAX_COUNT:-50}
+    volumes:
+      - backend-backups:/app/backups
+    restart: unless-stopped
+    networks:
+      - predix-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # 数据库定时备份服务（每天凌晨 3 点执行）
+  backup:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: predix-backup
+    command: ["node", "-e", "setInterval(() => { const now = new Date(); if (now.getUTCHours() === 3 && now.getUTCMinutes() < 5) { require('./src/scripts/backup'); } }, 5 * 60 * 1000)"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-predix}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-predix_db}
+      - BACKUP_DIR=/app/backups
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+      - BACKUP_MAX_COUNT=${BACKUP_MAX_COUNT:-50}
+    volumes:
+      - backend-backups:/app/backups
+    restart: unless-stopped
+    networks:
+      - predix-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: predix-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:3001/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - predix-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  postgres-data:
+  backend-backups:
+
+networks:
+  predix-network:
+    driver: bridge
