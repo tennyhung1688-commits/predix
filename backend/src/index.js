@@ -228,41 +228,47 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // 启动服务器（测试环境下跳过自动启动）
 if (process.env.NODE_ENV !== 'test') {
-  server.listen(config.port, async () => {
+  server.listen(config.port, () => {
     logger.info({ port: config.port, nodeEnv: process.env.NODE_ENV || 'development' }, '🚀 Backend started');
 
-    // 初始化平台钱包
-    await walletService.init();
+    // 异步初始化，失败不阻塞服务
+    (async () => {
+      try {
+        // 初始化平台钱包
+        await walletService.init();
 
-    // 连接 Polymarket WebSocket
-    wsService.connect();
+        // 连接 Polymarket WebSocket
+        wsService.connect();
 
-    // 启动 WebSocket 中继（前端 <-> 后端 <-> Polymarket）
-    wsRelay.attach(server);
+        // 启动 WebSocket 中继（前端 <-> 后端 <-> Polymarket）
+        wsRelay.attach(server);
 
-    // 启动自动结算定时检测（每 5 分钟）
-    const settlementService = require('./services/settlement');
-    const AUTO_SETTLE_INTERVAL = parseInt(process.env.AUTO_SETTLE_INTERVAL) || 5 * 60 * 1000; // 默认 5 分钟
+        // 启动自动结算定时检测（每 5 分钟）
+        const settlementService = require('./services/settlement');
+        const AUTO_SETTLE_INTERVAL = parseInt(process.env.AUTO_SETTLE_INTERVAL) || 5 * 60 * 1000;
 
-    if (process.env.DISABLE_AUTO_SETTLE !== 'true') {
-      logger.info({ intervalSec: AUTO_SETTLE_INTERVAL / 1000 }, '🔄 自动结算检测已启动');
-      setInterval(async () => {
-        try {
-          await settlementService.autoCheckAndSettle();
-        } catch (err) {
-          logger.error({ err: err.message }, '[定时结算] 执行失败');
+        if (process.env.DISABLE_AUTO_SETTLE !== 'true') {
+          logger.info({ intervalSec: AUTO_SETTLE_INTERVAL / 1000 }, '🔄 自动结算检测已启动');
+          setInterval(async () => {
+            try {
+              await settlementService.autoCheckAndSettle();
+            } catch (err) {
+              logger.error({ err: err.message }, '[定时结算] 执行失败');
+            }
+          }, AUTO_SETTLE_INTERVAL);
+
+          setTimeout(async () => {
+            try {
+              await settlementService.autoCheckAndSettle();
+            } catch (err) {
+              logger.error({ err: err.message }, '[定时结算-启动] 执行失败');
+            }
+          }, 10000);
         }
-      }, AUTO_SETTLE_INTERVAL);
-
-      // 启动后立即执行一次
-      setTimeout(async () => {
-        try {
-          await settlementService.autoCheckAndSettle();
-        } catch (err) {
-          logger.error({ err: err.message }, '[定时结算-启动] 执行失败');
-        }
-      }, 10000); // 延迟 10s 等待服务完全启动
-    }
+      } catch (err) {
+        logger.error({ err: err.message }, '⚠️ 后台服务初始化失败（HTTP 服务不受影响）');
+      }
+    })();
   });
 }
 
