@@ -1,0 +1,13 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brand-grad" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4f8fff"/>
+      <stop offset="50%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded diamond (precision / value) -->
+  <rect x="4" y="4" width="24" height="24" rx="5" transform="rotate(45 16 16)" fill="url(#brand-grad)"/>
+  <!-- Upward arrow (prediction / growth) -->
+  <path d="M16 9L21 16H17.5V23H14.5V16H11L16 9Z" fill="#ffffff"/>
+</svg>

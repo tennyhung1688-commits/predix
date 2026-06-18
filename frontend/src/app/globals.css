@@ -1,0 +1,316 @@
+@import "tailwindcss";
+
+:root {
+  /* ========== 背景体系 ========== */
+  --bg-primary: #0a0b0f;
+  --bg-secondary: #111318;
+  --bg-card: #16181d;
+  --bg-card-alt: #1a1d24;
+  --bg-hover: #1e2129;
+
+  /* ========== 边框 ========== */
+  --border: #222630;
+  --border-light: #2a2e38;
+
+  /* ========== 文字 ========== */
+  --text-primary: #f0f1f5;
+  --text-secondary: #9ca3af;
+  --text-muted: #595f6b;
+  --text-bright: #ffffff;
+
+  /* ========== 品牌色系 - 游戏化暖色调 ========== */
+  --accent-blue: #4f8fff;
+  --accent-blue-hover: #3d7ef5;
+  --accent-purple: #a78bfa;
+  --accent-amber: #f59e0b;
+  --accent-emerald: #10b981;
+  --accent-coral: #f87171;
+  --accent-cyan: #22d3ee;
+
+  /* ========== 交易色 ========== */
+  --green: #10b981;
+  --green-hover: #059669;
+  --green-bg: rgba(16, 185, 129, 0.12);
+  --green-border: rgba(16, 185, 129, 0.25);
+  --green-glow: rgba(16, 185, 129, 0.15);
+
+  --red: #ef4444;
+  --red-hover: #dc2626;
+  --red-bg: rgba(239, 68, 68, 0.12);
+  --red-border: rgba(239, 68, 68, 0.25);
+  --red-glow: rgba(239, 68, 68, 0.15);
+
+  /* ========== 渐变 ========== */
+  --gradient-brand: linear-gradient(135deg, #4f8fff 0%, #a78bfa 50%, #f59e0b 100%);
+  --gradient-buy: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --gradient-sell: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  --gradient-card: linear-gradient(180deg, rgba(79, 143, 255, 0.04) 0%, transparent 100%);
+  --gradient-hero: linear-gradient(180deg, rgba(79, 143, 255, 0.08) 0%, rgba(167, 139, 250, 0.03) 50%, transparent 100%);
+
+  /* ========== 阴影 ========== */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 4px 20px rgba(79, 143, 255, 0.12), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-glow-green: 0 0 20px rgba(16, 185, 129, 0.2);
+  --shadow-glow-red: 0 0 20px rgba(239, 68, 68, 0.2);
+  --shadow-glow-blue: 0 0 20px rgba(79, 143, 255, 0.2);
+
+  /* ========== 圆角 ========== */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  /* ========== 间距 (动效用) ========== */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@theme inline {
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+
+/* ================================================
+   动画系统
+   ================================================ */
+
+/* 淡入 + 上浮 */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 淡入 + 缩放 */
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 脉冲呼吸 */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 数字跳动 */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(0.5em); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 进度条充能 */
+@keyframes fillBar {
+  from { width: 0%; }
+}
+
+/* 辉光呼吸 */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(79, 143, 255, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(79, 143, 255, 0.25); }
+}
+
+/* 散花粒子 (用于下单成功) */
+@keyframes confettiFall {
+  0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* 渐变流动 */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 悬停上浮 */
+@keyframes hoverLift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2px); }
+}
+
+/* 波纹扩散 */
+@keyframes ripple {
+  from { transform: scale(0); opacity: 0.6; }
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* 经验条流光 */
+@keyframes xpShine {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* 成就解锁弹跳 */
+@keyframes achievementUnlock {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.1); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 连胜火焰 */
+@keyframes streakFlame {
+  0%, 100% { transform: scale(1) rotate(-5deg); filter: drop-shadow(0 0 4px rgba(251,191,36,0.4)); }
+  25%  { transform: scale(1.15) rotate(5deg); filter: drop-shadow(0 0 8px rgba(251,191,36,0.6)); }
+  50%  { transform: scale(1.05) rotate(-3deg); filter: drop-shadow(0 0 6px rgba(251,191,36,0.5)); }
+  75%  { transform: scale(1.2) rotate(3deg); filter: drop-shadow(0 0 10px rgba(251,191,36,0.7)); }
+}
+
+/* 统计卡片计数动画 */
+@keyframes statCountPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 稀有度边框光效 */
+@keyframes rarityGlow {
+  0%, 100% { box-shadow: 0 0 8px currentColor; }
+  50% { box-shadow: 0 0 20px currentColor, 0 0 40px currentColor; }
+}
+
+/* ========== 动画类 ========== */
+.animate-fade-in {
+  animation: fadeInUp 0.4s var(--ease-smooth);
+}
+.animate-fade-in-scale {
+  animation: fadeInScale 0.3s var(--ease-smooth);
+}
+.animate-pulse-slow {
+  animation: pulse 2s ease-in-out infinite;
+}
+.animate-count-up {
+  animation: countUp 0.5s var(--ease-spring);
+}
+.animate-fill-bar {
+  animation: fillBar 0.8s var(--ease-smooth);
+}
+.animate-glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+/* 游戏化动画类 */
+.animate-xp-shine {
+  background-size: 200% 100%;
+  animation: xpShine 2s ease-in-out infinite;
+}
+.animate-achievement-unlock {
+  animation: achievementUnlock 0.5s var(--ease-spring);
+}
+.animate-streak-flame {
+  animation: streakFlame 2s ease-in-out infinite;
+  display: inline-block;
+}
+.animate-stat-pop {
+  animation: statCountPop 0.5s var(--ease-smooth);
+}
+.animate-rarity-glow {
+  animation: rarityGlow 2s ease-in-out infinite;
+}
+
+/* ========== 数字等宽 ========== */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+
+
+/* ========== 品牌渐变色文字 ========== */
+.text-gradient-brand {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ========== 卡片通用悬浮 ========== */
+.card-hover {
+  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ========== 骨架屏 ========== */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-card-alt) 50%, var(--bg-hover) 75%);
+  background-size: 200% 100%;
+  animation: gradientShift 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ========== Toast 通知 ========== */
+@keyframes toastSlideIn {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes toastSlideOut {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-100%); opacity: 0; }
+}
+.toast-enter {
+  animation: toastSlideIn 0.3s var(--ease-smooth);
+}
+.toast-exit {
+  animation: toastSlideOut 0.3s var(--ease-smooth);
+}
+
+/* ========== 选择文本 ========== */
+::selection {
+  background: rgba(79, 143, 255, 0.3);
+  color: var(--text-bright);
+}
+
+/* ========== 聚焦环 ========== */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ========== 无障碍：减弱动画 ========== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ========== 移动端滚动条隐藏 ========== */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
