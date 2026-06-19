@@ -58,7 +58,12 @@ router.post('/login',
           });
           newReferralCode = code;
           break;
-        } catch {
+        } catch (err) {
+          logger.error({ err: err.message, stack: err.stack, attempt: i + 1 }, '用户创建失败');
+          // 只有唯一约束冲突才重试，其他错误（连接失败、表不存在等）直接抛出
+          if (err.code !== 'P2002') {
+            throw err;
+          }
           if (i === 4) throw new Error('推荐码生成冲突，请重试');
         }
       }
