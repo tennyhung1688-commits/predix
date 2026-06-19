@@ -25,7 +25,7 @@ services:
       # 从 Supabase Dashboard → Project Settings → Database → Connection string
       # 注意：要用 Session pooler 的连接串（端口 6543）
       - key: DATABASE_URL
-        value: postgresql://postgres:143701Hung..@db.roupvokufcuncygiasyo.supabase.co:6543/postgres?sslmode=no-verify
+        value: postgresql://postgres:143701Hung..@db.roupvokufcuncygiasyo.supabase.co:6543/postgres?sslmode=no-verify&pgbouncer=true
 
       # ---- JWT 密钥（自己在终端生成） ----
       # node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
