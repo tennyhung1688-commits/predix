@@ -317,6 +317,8 @@ export const api = {
   // ========== 推荐奖励 ==========
   getReferral: () =>
     fetchAPI<ApiResponse<ReferralData>>('/referral'),
+  getReferralLeaderboard: (period?: string) =>
+    fetchAPI<ApiResponse<LeaderboardEntry[]>>(`/referral/leaderboard?period=${period || 'all'}`),
   generateReferralCode: () =>
     fetchAPI<ApiResponse<{ code: string }>>('/referral/generate-code', { method: 'POST' }),
   lookupReferral: (code: string) =>
