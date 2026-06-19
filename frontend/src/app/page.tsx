@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useMarkets } from '@/hooks/useMarkets';
 import { MarketCard } from '@/components/MarketCard';
 import { TradingPanel } from '@/components/TradingPanel';
@@ -21,9 +21,11 @@ export default function Home() {
   const [selectedMarket, setSelectedMarket] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [trendingTags, setTrendingTags] = useState<{ id: number; label: string }[]>([]);
-  const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0 });
+  const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0, feeRate: 0.035 });
   const [categories, setCategories] = useState<Category[]>([]);
+  const [showMoreCats, setShowMoreCats] = useState(false);
   const [popularOnly, setPopularOnly] = useState(true); // 默认仅显示热门（24h交易量 >= $100）
+  const moreRef = useRef<HTMLDivElement>(null);
   const POPULAR_VOLUME_THRESHOLD = 100; // 24h 最低交易量门槛（美元）
 
   // 分类市场数据（从 API 按 tag 拉取）
@@ -44,6 +46,20 @@ export default function Home() {
         ));
       })
       .catch(() => {});
+    api.getFeeInfo()
+      .then((res: any) => setStats(prev => ({ ...prev, feeRate: res.data?.feeRate || 0.035 })))
+      .catch(() => {});
+  }, []);
+
+  // 关闭下拉菜单（点击外部）
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setShowMoreCats(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   // 当切换 tab 时，按需从 API 拉取对应分类
@@ -97,6 +113,10 @@ export default function Home() {
     return result;
   }, [markets, categoryMarkets, activeTab, searchQuery, popularOnly]);
 
+  // 前 5 个常用分类直接显示，其余在"更多"下拉中
+  const primaryCats = categories.slice(0, 6);
+  const moreCats = categories.slice(6);
+
   const isLoading = loading || categoryLoading;
 
   // 静默刷新后恢复滚动位置 — useLayoutEffect 在 DOM commit 后、浏览器 paint 前同步执行
@@ -111,7 +131,7 @@ export default function Home() {
   return (
     <div className="max-w-[1440px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* 顶部统计栏 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
         <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 card-hover overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-cyan)] opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="flex items-center gap-2 mb-1">
@@ -120,7 +140,7 @@ export default function Home() {
             </svg>
             <span className="text-xs text-[var(--text-muted)]">{t('home.24hVolume')}</span>
           </div>
-          <div className="text-xl font-bold tabular-nums animate-count-up text-[var(--text-bright)] font-display">
+          <div className="text-xl font-bold tabular-nums animate-count-up text-[var(--text-bright)]">
             {formatVolume(stats.totalVolume)}
           </div>
         </div>
@@ -132,9 +152,19 @@ export default function Home() {
             </svg>
             <span className="text-xs text-[var(--text-muted)]">{t('home.activeMarkets')}</span>
           </div>
-          <div className="text-xl font-bold tabular-nums animate-count-up font-display">
+          <div className="text-xl font-bold tabular-nums animate-count-up">
             {stats.marketsCount}
           </div>
+        </div>
+        <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 card-hover overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent-emerald)] to-[var(--accent-cyan)] opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="w-3.5 h-3.5 text-[var(--accent-emerald)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span className="text-xs text-[var(--text-muted)]">{t('home.feeRate')}</span>
+          </div>
+          <div className="text-xl font-bold text-[var(--accent-emerald)]">{(stats.feeRate * 100).toFixed(1)}%</div>
         </div>
       </div>
 
@@ -168,8 +198,8 @@ export default function Home() {
           {popularOnly ? '仅热门' : '显示全部'}
         </button>
 
-          {/* 分类 Tab */}
-        <div className="flex gap-1 bg-[var(--bg-card)] border border-[var(--border-light)] rounded-xl p-1 overflow-x-auto scrollbar-hide snap-x snap-mandatory items-center flex-1 min-w-0">
+        {/* 分类 Tab */}
+        <div className="flex gap-1 bg-[var(--bg-card)] border border-[var(--border-light)] rounded-xl p-1 overflow-x-auto scrollbar-hide snap-x snap-mandatory items-center">
           {/* "全部" tab */}
           <button
             onClick={() => setActiveTab('all')}
@@ -182,8 +212,8 @@ export default function Home() {
             {t('home.all')}
           </button>
 
-          {/* 所有分类直接平铺 */}
-          {categories.map(cat => (
+          {/* 主要分类 */}
+          {primaryCats.map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveTab(cat.id)}
@@ -196,6 +226,46 @@ export default function Home() {
               {cat.label}
             </button>
           ))}
+
+          {/* 更多分类下拉 */}
+          {moreCats.length > 0 && (
+            <div className="relative" ref={moreRef}>
+              <button
+                onClick={() => setShowMoreCats(!showMoreCats)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-300 flex items-center gap-1 ${
+                  moreCats.some(c => c.id === activeTab)
+                    ? 'bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-purple)] text-white'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                }`}
+              >
+                {t('home.more')}
+                <svg className={`w-3 h-3 transition-transform duration-300 ${showMoreCats ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+
+              {showMoreCats && (
+                <div className="absolute right-0 top-full mt-1 w-44 bg-[var(--bg-card)] border border-[var(--border-light)] rounded-xl shadow-[var(--shadow-elevated)] z-30 py-1 animate-fade-in-scale max-h-60 overflow-y-auto origin-top-right">
+                  {moreCats.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        setActiveTab(cat.id);
+                        setShowMoreCats(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                        activeTab === cat.id
+                          ? 'bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] font-medium'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -49,7 +49,7 @@ export function Navbar() {
                 className="shrink-0 transition-transform duration-200 group-hover:scale-105"
                 priority
               />
-              <span className="font-bold text-lg tracking-tight">
+              <span className="font-bold text-lg tracking-tight font-display">
                 Predi<span className="text-gradient-brand">X</span>
               </span>
             </Link>
@@ -97,6 +97,12 @@ export function Navbar() {
                 className="px-3 py-1.5 rounded-md text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all duration-200"
               >
                 {t('nav.terms')}
+              </Link>
+              <Link
+                href="/referral"
+                className="px-3 py-1.5 rounded-md text-sm text-[var(--accent-amber)] hover:text-[var(--accent-amber)] hover:bg-[var(--accent-amber)]/10 transition-all duration-200 font-semibold"
+              >
+                🎁 {t('nav.referral')}
               </Link>
 
             </div>
@@ -224,7 +230,7 @@ export function Navbar() {
                   height={26}
                   className="shrink-0"
                 />
-                <span className="font-bold text-base">
+                <span className="font-bold text-base font-display">
                   Predi<span className="text-gradient-brand">X</span>
                 </span>
               </Link>
