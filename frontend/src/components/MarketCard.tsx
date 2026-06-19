@@ -47,7 +47,7 @@ export function MarketCard({ market, onClick }: MarketCardProps) {
       </div>
 
       {/* 标题 */}
-      <h3 className="text-sm font-medium leading-snug mb-3 line-clamp-2 group-hover:text-[var(--accent-cyan)] transition-colors duration-200 relative">
+      <h3 className="text-sm font-medium leading-snug mb-3 line-clamp-2 group-hover:text-[var(--accent-cyan)] transition-colors duration-200 relative font-display">
         {market.question_zh || market.title_zh || market.question || market.title}
       </h3>
 

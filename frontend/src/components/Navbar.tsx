@@ -49,7 +49,7 @@ export function Navbar() {
                 className="shrink-0 transition-transform duration-200 group-hover:scale-105"
                 priority
               />
-              <span className="font-bold text-lg tracking-tight">
+              <span className="font-bold text-lg tracking-tight font-display">
                 Predi<span className="text-gradient-brand">X</span>
               </span>
             </Link>
@@ -224,7 +224,7 @@ export function Navbar() {
                   height={26}
                   className="shrink-0"
                 />
-                <span className="font-bold text-base">
+                <span className="font-bold text-base font-display">
                   Predi<span className="text-gradient-brand">X</span>
                 </span>
               </Link>

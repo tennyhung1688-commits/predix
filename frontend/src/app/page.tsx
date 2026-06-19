@@ -137,7 +137,7 @@ export default function Home() {
             </svg>
             <span className="text-xs text-[var(--text-muted)]">{t('home.24hVolume')}</span>
           </div>
-          <div className="text-xl font-bold tabular-nums animate-count-up text-[var(--text-bright)]">
+          <div className="text-xl font-bold tabular-nums animate-count-up text-[var(--text-bright)] font-display">
             {formatVolume(stats.totalVolume)}
           </div>
         </div>
@@ -149,7 +149,7 @@ export default function Home() {
             </svg>
             <span className="text-xs text-[var(--text-muted)]">{t('home.activeMarkets')}</span>
           </div>
-          <div className="text-xl font-bold tabular-nums animate-count-up">
+          <div className="text-xl font-bold tabular-nums animate-count-up font-display">
             {stats.marketsCount}
           </div>
         </div>
