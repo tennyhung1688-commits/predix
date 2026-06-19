@@ -170,11 +170,14 @@ app.get('/', requireAdmin, (req, res) => {
   res.sendFile(htmlPath);
 });
 
-// 健康检查（含数据库连通性检测）
+// 健康检查（含数据库连通性检测，5秒超时保护）
 app.get('/api/health', async (req, res) => {
   try {
     const prisma = require('./lib/prisma');
-    await prisma.$queryRaw`SELECT 1`;
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('DB query timeout')), 5000))
+    ]);
     res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() });
   } catch (err) {
     res.status(503).json({ status: 'error', db: 'disconnected', error: err.message, timestamp: new Date().toISOString() });
