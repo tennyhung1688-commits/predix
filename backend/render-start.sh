@@ -40,4 +40,4 @@ done
 
 # 启动服务
 echo "✅ 启动服务..."
-exec node src/index.js"
+exec node src/index.js
