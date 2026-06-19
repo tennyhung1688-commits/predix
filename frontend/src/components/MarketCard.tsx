@@ -30,9 +30,9 @@ export function MarketCard({ market, onClick }: MarketCardProps) {
   const category = tags[0]?.label || t('general.general');
 
   return (
-    <button
+    <div
       onClick={onClick}
-      className="group relative w-full text-left bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 cursor-pointer hover:border-[var(--accent-cyan)]/30 hover:ring-1 hover:ring-[var(--accent-cyan)]/20 card-hover animate-fade-in overflow-hidden focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)] focus-visible:outline-none"
+      className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 cursor-pointer hover:border-[var(--accent-cyan)]/30 hover:ring-1 hover:ring-[var(--accent-cyan)]/20 card-hover animate-fade-in overflow-hidden"
     >
       {/* 分类标签 */}
       <div className="flex items-center gap-2 mb-3 relative">
@@ -47,7 +47,7 @@ export function MarketCard({ market, onClick }: MarketCardProps) {
       </div>
 
       {/* 标题 */}
-      <h3 className="text-sm font-medium leading-snug mb-3 line-clamp-2 group-hover:text-[var(--accent-cyan)] transition-colors duration-200 relative font-display">
+      <h3 className="text-sm font-medium leading-snug mb-3 line-clamp-2 group-hover:text-[var(--accent-cyan)] transition-colors duration-200 relative">
         {market.question_zh || market.title_zh || market.question || market.title}
       </h3>
 

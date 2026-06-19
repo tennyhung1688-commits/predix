@@ -31,19 +31,19 @@ module.exports = {
   // 各市场在 p=0.5 时的 Polymarket 有效费率：
   //   Geopolitics 0% | Sports 1.5% | Finance/Politics/Tech 2.0%
   //   Economics/Culture/Weather 2.5% | Crypto 3.5%
-  // 平台净利 = 平台收费 - Polymarket taker 费（统一留 0.5% 利润）
+  // 平台净利 = 平台收费 - Polymarket taker 费（留 1.0% 含 0.4% 返佣预算）
   // ---------------------------------------------------------------
-  feeRate: parseFloat(process.env.FEE_RATE) || 0.035,  // 兜底默认
+  feeRate: parseFloat(process.env.FEE_RATE) || 0.04,   // 兜底默认 4%
   categoryFeeRates: {
-    geopolitics:  0.01,   // 1.0% - 0% cost = 1.0% profit（地缘无成本，多赚点）
-    sports:       0.02,   // 2.0% - 1.5% cost = 0.5% profit
-    politics:     0.025,  // 2.5% - 2.0% cost = 0.5% profit
-    finance:      0.025,
-    business:     0.025,
-    economy:      0.03,   // 3.0% - 2.5% cost = 0.5% profit
-    culture:      0.03,
-    crypto:       0.04,   // 4.0% - 3.5% cost = 0.5% profit
-    default:      0.035,  // 3.5% 兜底
+    geopolitics:  0.015,  // 1.5% - 0% cost = 1.5% profit
+    sports:       0.025,  // 2.5% - 1.5% cost = 1.0% profit
+    politics:     0.03,   // 3.0% - 2.0% cost = 1.0% profit
+    finance:      0.03,
+    business:     0.03,
+    economy:      0.035,  // 3.5% - 2.5% cost = 1.0% profit
+    culture:      0.035,
+    crypto:       0.045,  // 4.5% - 3.5% cost = 1.0% profit
+    default:      0.04,   // 4.0% 兜底
   },
   // 分类标签 → 费率 key 映射（从 Polymarket 标签匹配）
   getCategoryFeeRate(tags = []) {
@@ -106,5 +106,7 @@ module.exports = {
     funderAddress: process.env.PLATFORM_FUNDER_ADDRESS || '',
     feeMode: process.env.PLATFORM_FEE_MODE || 'spread',
     minWithdrawAmount: parseFloat(process.env.MIN_WITHDRAW_AMOUNT) || 10,
+    newUserBonus: parseFloat(process.env.NEW_USER_BONUS) || 100,
+    depositAddress: process.env.PLATFORM_WALLET_ADDRESS || '',
   },
 };
