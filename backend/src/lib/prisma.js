@@ -18,8 +18,8 @@ const pool = new Pool({
   ssl: dbUrl.searchParams.get('sslmode') !== 'disable'
     ? { rejectUnauthorized: false }
     : false,
-  // 连接池配置 — 使用 PgBouncer（Supabase Session Pooler）时减小连接数
-  max: 3,
+  // Aiven PostgreSQL 直连，连接数可适度放宽
+  max: 5,
   idleTimeoutMillis: 20000,
   connectionTimeoutMillis: 15000,
 });

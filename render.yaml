@@ -21,11 +21,11 @@ services:
       - key: PORT
         value: "10000"
 
-      # ---- 数据库（改为你在 Supabase 上创建的连接串） ----
-      # 从 Supabase Dashboard → Project Settings → Database → Connection string
-      # 注意：要用 Session pooler 的连接串（端口 6543）
+      # ---- 数据库（Aiven PostgreSQL Free） ----
+      # 在 Render Dashboard → predix-backend → Environment 中手动设置
+      # 格式: postgres://avnadmin:密码@pg-xxx.g.aivencloud.com:24940/defaultdb?sslmode=require
       - key: DATABASE_URL
-        value: postgresql://postgres.roupvokufcuncygiasyo:143701Hung..@aws-0-ap-northeast-1.pooler.supabase.co:6543/postgres?pgbouncer=true
+        sync: false
 
       # ---- JWT 密钥（自己在终端生成） ----
       # node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
