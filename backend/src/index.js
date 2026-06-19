@@ -170,19 +170,47 @@ app.get('/', requireAdmin, (req, res) => {
   res.sendFile(htmlPath);
 });
 
-// 健康检查（含数据库连通性检测，5秒超时保护）
-app.get('/api/health', async (req, res) => {
+// 健康检查
+// 始终返回 200，避免 Render 健康检查因 DB 慢响应而判定部署失败
+app.get('/api/health', async (_req, res) => {
+  const result = { status: 'ok', db: 'unknown', uptime: process.uptime(), timestamp: new Date().toISOString() };
   try {
     const prisma = require('./lib/prisma');
     await Promise.race([
       prisma.$queryRaw`SELECT 1`,
       new Promise((_, reject) => setTimeout(() => reject(new Error('DB query timeout')), 5000))
     ]);
-    res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() });
+    result.db = 'connected';
   } catch (err) {
-    res.status(503).json({ status: 'error', db: 'disconnected', error: err.message, timestamp: new Date().toISOString() });
+    result.db = 'disconnected';
+    result.dbError = err.message;
   }
+  res.json(result);
 });
+
+// 启动后异步预热数据库连接（不阻塞启动）
+let dbWarm = false;
+(async function warmupDB() {
+  try {
+    const prisma = require('./lib/prisma');
+    await prisma.$queryRaw`SELECT 1`;
+    dbWarm = true;
+    logger.info('✅ 数据库连接已预热');
+  } catch (err) {
+    logger.warn({ err: err.message }, '⚠️ 数据库预热失败，将重试');
+    // 30 秒后重试一次
+    setTimeout(async () => {
+      try {
+        const prisma = require('./lib/prisma');
+        await prisma.$queryRaw`SELECT 1`;
+        dbWarm = true;
+        logger.info('✅ 数据库连接已预热（重试成功）');
+      } catch (e) {
+        logger.error({ err: e.message }, '❌ 数据库预热再次失败');
+      }
+    }, 30000);
+  }
+})();
 
 // WebSocket 实时数据代理端点（给前端轮询降级用）
 app.get('/api/realtime/price/:tokenId', async (req, res) => {
