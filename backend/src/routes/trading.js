@@ -15,11 +15,12 @@ const router = express.Router();
 
 /**
  * 计算价差手续费
- * BUY：用户买价 = 市价 × 1.005（平台以市价买入，差价归平台）
- * SELL：用户卖价 = 市价 × 0.995（平台以市价卖出，差价归平台）
+ * BUY：用户买价 = 市价 × (1 + feeRate)（平台以市价买入，差价归平台）
+ * SELL：用户卖价 = 市价 × (1 - feeRate)（平台以市价卖出，差价归平台）
+ * feeRate 默认 3.5%，覆盖 Polymarket 最坏情况的 taker 费
  */
 function calcSpread(price, size, side) {
-  const feeRate = config.feeRate; // 0.005
+  const feeRate = config.feeRate; // 0.035
   const spreadFee = price * size * feeRate;
 
   if (side === 'BUY') {
@@ -430,7 +431,7 @@ router.get('/fee-info', (req, res) => {
       description: isDemoMode
         ? '⚠️ 演示模式：平台钱包未配置，交易为模拟执行，不提交到 Polymarket 链上'
         : config.platform.feeMode === 'spread'
-          ? '价差模式：买入价格上浮 0.5%，卖出价格下调 0.5%，差价归平台'
+          ? '价差模式：买入价格上浮、卖出价格下调，差价归平台（费率 ' + (config.feeRate * 100).toFixed(1) + '%）'
           : '固定费率模式',
     },
   });

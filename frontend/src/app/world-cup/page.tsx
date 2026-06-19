@@ -102,7 +102,7 @@ export default function WorldCupPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<any>(null);
-  const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0 });
+  const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0, feeRate: 0.035 });
   const [matches, setMatches] = useState<any[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [matchFilter, setMatchFilter] = useState<{ homeTeam: string; awayTeam: string } | null>(null);
@@ -175,6 +175,9 @@ export default function WorldCupPage() {
   // 页面挂载时立即拉取市场数据（统计栏常驻，不随 Tab 切换清空）
   useEffect(() => {
     fetchMarkets();
+    api.getFeeInfo()
+      .then((res: any) => setStats(prev => ({ ...prev, feeRate: res.data?.feeRate || 0.035 })))
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -315,7 +318,7 @@ export default function WorldCupPage() {
           </div>
           <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
             <div className="text-xs text-[var(--text-muted)] mb-1">{t('home.feeRate')}</div>
-            <div className="text-lg font-bold text-[var(--accent-emerald)]">0.5%</div>
+            <div className="text-lg font-bold text-[var(--accent-emerald)]">{(stats.feeRate * 100).toFixed(1)}%</div>
           </div>
         </div>
         {/* 实时更新指示器 */}

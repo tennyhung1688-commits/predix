@@ -25,7 +25,13 @@ module.exports = {
     dataApi: process.env.POLYMARKET_DATA_API || 'https://data-api.polymarket.com',
     wsUrl: process.env.POLYMARKET_WS || 'wss://ws-subscriptions-clob.polymarket.com/ws/market',
   },
-  feeRate: parseFloat(process.env.FEE_RATE) || 0.005,
+  // 默认手续费率 3.5%（覆盖 Polymarket taker fee 最坏情况 Crypto 3.5%）
+  // Polymarket 按公式计算: fee = C × feeRate × p × (1-p)，实际有效费率远超贴出数字
+  // 各市场在 p=0.5 时的 Polymarket 有效费率：
+  //   Geopolitics 0% | Sports 1.5% | Finance/Politics/Tech 2.0%
+  //   Economics/Culture/Weather 2.5% | Crypto 3.5%
+  // 平台净利 = 平台收费 - Polymarket taker 费
+  feeRate: parseFloat(process.env.FEE_RATE) || 0.035,
   corsOrigin: (() => {
     const origin = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
     // 生产环境未设置 CORS_ORIGIN 时警告（仅警告，允许 localhost fallback 用于内网部署）

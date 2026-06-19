@@ -38,7 +38,7 @@ services:
 
       # ---- Polymarket 配置 ----
       - key: FEE_RATE
-        value: "0.005"
+        value: "0.035"
       - key: POLYMARKET_GAMMA_API
         value: https://gamma-api.polymarket.com
       - key: POLYMARKET_CLOB_API

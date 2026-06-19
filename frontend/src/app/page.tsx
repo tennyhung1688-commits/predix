@@ -21,7 +21,7 @@ export default function Home() {
   const [selectedMarket, setSelectedMarket] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [trendingTags, setTrendingTags] = useState<{ id: number; label: string }[]>([]);
-  const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0 });
+  const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0, feeRate: 0.035 });
   const [categories, setCategories] = useState<Category[]>([]);
   const [showMoreCats, setShowMoreCats] = useState(false);
   const [popularOnly, setPopularOnly] = useState(true); // 默认仅显示热门（24h交易量 >= $100）
@@ -45,6 +45,9 @@ export default function Home() {
           typeof t === 'string' ? { id: 0, label: t } : t
         ));
       })
+      .catch(() => {});
+    api.getFeeInfo()
+      .then((res: any) => setStats(prev => ({ ...prev, feeRate: res.data?.feeRate || 0.035 })))
       .catch(() => {});
   }, []);
 
@@ -161,7 +164,7 @@ export default function Home() {
             </svg>
             <span className="text-xs text-[var(--text-muted)]">{t('home.feeRate')}</span>
           </div>
-          <div className="text-xl font-bold text-[var(--accent-emerald)]">0.5%</div>
+          <div className="text-xl font-bold text-[var(--accent-emerald)]">{(stats.feeRate * 100).toFixed(1)}%</div>
         </div>
       </div>
 
