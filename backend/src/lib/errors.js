@@ -26,15 +26,22 @@ function sendError(res, err, statusCode = 500) {
   const isProduction = process.env.NODE_ENV === 'production';
   const code = err.statusCode || statusCode;
 
-  // 5xx 错误记入日志
+  // 5xx 错误记入日志（含完整 error object 序列化）
   if (code >= 500) {
-    logger.error({ err: err.message, stack: err.stack, statusCode: code }, 'Server error');
+    const errorDetail = {
+      message: err.message,
+      code: err.code,
+      meta: err.meta,
+      stack: err.stack,
+      statusCode: code,
+    };
+    logger.error(errorDetail, 'Server error');
+    // 同时输出到 console.error，方便在 Render 日志中直接看到
+    console.error(JSON.stringify(errorDetail, null, 2));
   }
 
-  // 生产环境：5xx 返回通用消息；4xx 保留原始消息
-  const message = (isProduction && code >= 500)
-    ? '服务器内部错误，请稍后重试'
-    : err.message || '未知错误';
+  // 临时暴露完整错误信息以便调试（修复后改回通用消息）
+  const message = err.message || '未知错误';
 
   res.status(code).json({ success: false, error: message });
 }

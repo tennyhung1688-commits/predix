@@ -96,6 +96,13 @@ router.post('/login',
       },
     });
   } catch (err) {
+    // 临时：打印完整错误到 stdout，方便 Render 日志排查
+    console.error('[auth/login] 捕获错误:', {
+      message: err.message,
+      code: err.code,
+      meta: err.meta,
+      stack: err.stack,
+    });
     sendError(res, err);
   }
 });
