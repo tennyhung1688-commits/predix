@@ -9,10 +9,22 @@
  */
 const { PrismaClient } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
+const { Pool } = require('pg');
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL || 'postgresql://predix:predix_password@localhost:5432/predix_db',
+const rawUrl = process.env.DATABASE_URL || 'postgresql://predix:predix_password@localhost:5432/predix_db';
+const dbUrl = new URL(rawUrl);
+
+const pool = new Pool({
+  host: dbUrl.hostname,
+  port: parseInt(dbUrl.port) || 5432,
+  database: dbUrl.pathname.slice(1),
+  user: decodeURIComponent(dbUrl.username),
+  password: decodeURIComponent(dbUrl.password),
+  family: 4,
+  ssl: dbUrl.searchParams.get('sslmode') !== 'disable' ? { rejectUnauthorized: false } : false,
 });
+
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
