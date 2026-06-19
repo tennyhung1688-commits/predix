@@ -88,7 +88,7 @@ export default function Home() {
       const totalVol = source.reduce((sum: number, m: any) =>
         sum + parseFloat(m.volume24hr || m.volume || '0'), 0
       );
-      setStats({ totalVolume: totalVol, marketsCount: source.length });
+      setStats(prev => ({ ...prev, totalVolume: totalVol, marketsCount: source.length }));
     }
   }, [markets, categoryMarkets, activeTab, popularOnly]);
 

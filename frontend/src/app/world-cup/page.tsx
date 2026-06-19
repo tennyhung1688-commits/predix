@@ -130,7 +130,7 @@ export default function WorldCupPage() {
         );
 
         setMarkets(data);
-        setStats({ totalVolume: totalVol, marketsCount: data.length });
+        setStats(prev => ({ ...prev, totalVolume: totalVol, marketsCount: data.length }));
         setLastUpdated(Date.now());
         if (silent) setIsRefreshing(false);
       })
