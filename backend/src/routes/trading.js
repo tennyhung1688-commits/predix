@@ -12,7 +12,6 @@ const logger = require('../lib/logger');
 const { sendError } = require('../lib/errors');
 
 const router = express.Router();
-const { recordReferralEarnings } = require('./referral');
 
 /**
  * 计算价差手续费（接受动态费率，支持分档收费）
@@ -300,11 +299,6 @@ router.post('/order', requireAuth,
         ...positionOps,
       ];
       await prisma.$transaction(txOps);
-
-      // 记录推荐返佣（异步，不影响响应）
-      recordReferralEarnings(user.id, trade.id, spread.spreadFee || 0).catch(err => {
-        logger.warn({ err }, '记录推荐返佣失败');
-      });
 
       res.json({
         success: true,

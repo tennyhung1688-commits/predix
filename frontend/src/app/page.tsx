@@ -21,7 +21,7 @@ export default function Home() {
   const [selectedMarket, setSelectedMarket] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [trendingTags, setTrendingTags] = useState<{ id: number; label: string }[]>([]);
-  const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0, feeRate: 0.035 });
+  const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
   const [showMoreCats, setShowMoreCats] = useState(false);
   const [popularOnly, setPopularOnly] = useState(true); // 默认仅显示热门（24h交易量 >= $100）
@@ -45,9 +45,6 @@ export default function Home() {
           typeof t === 'string' ? { id: 0, label: t } : t
         ));
       })
-      .catch(() => {});
-    api.getFeeInfo()
-      .then((res: any) => setStats(prev => ({ ...prev, feeRate: res.data?.feeRate || 0.035 })))
       .catch(() => {});
   }, []);
 
@@ -131,7 +128,7 @@ export default function Home() {
   return (
     <div className="max-w-[1440px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* 顶部统计栏 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
         <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 card-hover overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-cyan)] opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="flex items-center gap-2 mb-1">
@@ -155,16 +152,6 @@ export default function Home() {
           <div className="text-xl font-bold tabular-nums animate-count-up">
             {stats.marketsCount}
           </div>
-        </div>
-        <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 card-hover overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent-emerald)] to-[var(--accent-cyan)] opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="flex items-center gap-2 mb-1">
-            <svg className="w-3.5 h-3.5 text-[var(--accent-emerald)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span className="text-xs text-[var(--text-muted)]">{t('home.feeRate')}</span>
-          </div>
-          <div className="text-xl font-bold text-[var(--accent-emerald)]">{(stats.feeRate * 100).toFixed(1)}%</div>
         </div>
       </div>
 
