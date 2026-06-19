@@ -46,7 +46,6 @@ model ReferralEarning {
   tradeFee      Float                        // 原始交易手续费
   commission    Float                        // 佣金金额
   rate          Float    @default(0.2)       // 佣金比例
-  level         Int      @default(1)         // 1=直接邀请 2=间接邀请
   status        String   @default("pending") // pending, credited, withdrawn
   createdAt     DateTime @default(now())
   creditedAt    DateTime?
