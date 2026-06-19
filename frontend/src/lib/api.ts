@@ -112,6 +112,7 @@ export const api = {
     price?: number;
     amount?: number;
     orderType?: string;
+    tags?: string[];
   }) =>
     fetchAPI<ApiResponse<PlatformTrade>>('/order', {
       method: 'POST',
@@ -124,8 +125,8 @@ export const api = {
   getOrders: () =>
     fetchAPI<ApiResponse<PlatformTrade[]>>('/orders'),
 
-  getFeeInfo: () =>
-    fetchAPI<ApiResponse<FeeInfo>>('/fee-info'),
+  getFeeInfo: (tags?: string) =>
+    fetchAPI<ApiResponse<FeeInfo>>(`/fee-info${tags ? `?tags=${encodeURIComponent(tags)}` : ''}`),
 
   // 认证
   login: (walletAddress: string) =>

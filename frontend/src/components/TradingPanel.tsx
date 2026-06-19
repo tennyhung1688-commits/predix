@@ -47,6 +47,11 @@ export function TradingPanel({ market }: TradingPanelProps) {
   const clobTokens = safeJson(market.clobTokenIds);
   const tokenId = clobTokens[0];
 
+  // 提取市场标签用于分档费率匹配
+  const marketTags = (market.tags || [])
+    .map((t: any) => typeof t === 'string' ? t : (t.label || t.slug || ''))
+    .filter(Boolean);
+
   // 使用实时价格 hook（WebSocket + 降级轮询）
   const { price: realtimePrice, connected: wsConnected } = useRealtimePrice(tokenId);
 
@@ -64,7 +69,8 @@ export function TradingPanel({ market }: TradingPanelProps) {
   }, [realtimePrice]);
 
   useEffect(() => {
-    api.getFeeInfo().then((res: any) => setFeeInfo(res.data)).catch(() => {});
+    api.getFeeInfo(marketTags.length > 0 ? marketTags.join(',') : undefined)
+      .then((res: any) => setFeeInfo(res.data)).catch(() => {});
 
     // 获取市场配置，尤其是 tickSize
     if (tokenId) {
@@ -116,7 +122,7 @@ export function TradingPanel({ market }: TradingPanelProps) {
 
     setLoading(true);
     try {
-      const payload: any = { tokenId, side };
+      const payload: any = { tokenId, side, tags: marketTags };
       if (isMarket) {
         payload.amount = numAmount;
         payload.orderType = 'MARKET_FAK';

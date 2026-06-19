@@ -14,13 +14,9 @@ const { sendError } = require('../lib/errors');
 const router = express.Router();
 
 /**
- * 计算价差手续费
- * BUY：用户买价 = 市价 × (1 + feeRate)（平台以市价买入，差价归平台）
- * SELL：用户卖价 = 市价 × (1 - feeRate)（平台以市价卖出，差价归平台）
- * feeRate 默认 3.5%，覆盖 Polymarket 最坏情况的 taker 费
+ * 计算价差手续费（接受动态费率，支持分档收费）
  */
-function calcSpread(price, size, side) {
-  const feeRate = config.feeRate; // 0.035
+function calcSpread(price, size, side, feeRate) {
   const spreadFee = price * size * feeRate;
 
   if (side === 'BUY') {
@@ -88,7 +84,7 @@ router.post('/order', requireAuth,
   })),
   async (req, res) => {
   try {
-    const { tokenId, side, size, price, amount, orderType } = req.body;
+    const { tokenId, side, size, price, amount, orderType, tags } = req.body;
 
     if (!tokenId || !side) {
       return res.status(400).json({ success: false, error: '缺少必要参数: tokenId, side' });
@@ -97,6 +93,9 @@ router.post('/order', requireAuth,
     if (!['BUY', 'SELL'].includes(side)) {
       return res.status(400).json({ success: false, error: 'side 必须为 BUY 或 SELL' });
     }
+
+    // 根据市场标签匹配分档费率
+    const feeRate = config.getCategoryFeeRate(tags);
 
     // 判断是否为市价单
     const isMarketOrder = typeof orderType === 'string' && orderType.startsWith('MARKET_');
@@ -139,12 +138,12 @@ router.post('/order', requireAuth,
 
     // 计算价差（市价单使用金额反算）
     const spread = isMarketOrder
-      ? calcSpread(1, side === 'BUY' ? parsedAmount : parsedAmount / (1 - config.feeRate), side)
-      : calcSpread(parsedPrice, parsedSize, side);
+      ? calcSpread(1, side === 'BUY' ? parsedAmount : parsedAmount / (1 - feeRate), side, feeRate)
+      : calcSpread(parsedPrice, parsedSize, side, feeRate);
 
     // 用户实际花费
     const userCost = isMarketOrder
-      ? (side === 'BUY' ? parsedAmount * (1 + config.feeRate) : parsedAmount)
+      ? (side === 'BUY' ? parsedAmount * (1 + feeRate) : parsedAmount)
       : (side === 'BUY' ? spread.userCost : (spread.userProceeds || parsedSize * parsedPrice));
 
     // 检查用户余额
@@ -173,7 +172,7 @@ router.post('/order', requireAuth,
         size: isMarketOrder ? parsedAmount : parsedSize,
         originalPrice: isMarketOrder ? 0 : parsedPrice,
         executePrice: isMarketOrder ? 0 : spread.executePrice,
-        spreadFee: spread.spreadFee || (isMarketOrder ? parsedAmount * config.feeRate : 0),
+        spreadFee: spread.spreadFee || (isMarketOrder ? parsedAmount * feeRate : 0),
         status: 'pending',
       },
     });
@@ -295,7 +294,7 @@ router.post('/order', requireAuth,
           },
         }),
         prisma.platformRevenue.create({
-          data: { source: 'SPREAD', amount: spread.spreadFee || (parsedAmount * config.feeRate), tradeId: trade.id, userId: user.id },
+          data: { source: 'SPREAD', amount: spread.spreadFee || (parsedAmount * feeRate), tradeId: trade.id, userId: user.id },
         }),
         ...positionOps,
       ];
@@ -365,10 +364,11 @@ router.delete('/order/:orderId', requireAuth,
       });
     }
 
-    // 退款：用户实际花费 = 价差调整后的金额
+    // 退款：使用 Trade 记录中的 spreadFee 反推实际花费
+    const feeRate = trade.spreadFee / (trade.originalPrice * trade.size) || config.feeRate;
     const refundAmount = trade.side === 'BUY'
-      ? trade.originalPrice * trade.size * (1 + config.feeRate)
-      : trade.originalPrice * trade.size * (1 - config.feeRate);
+      ? trade.originalPrice * trade.size * (1 + feeRate)
+      : trade.originalPrice * trade.size * (1 - feeRate);
 
     // 先读取当前余额，在事务中原子更新
     const currentUser = await prisma.user.findUnique({ where: { id: req.user.id } });
@@ -418,21 +418,29 @@ router.get('/orders', requireAuth, async (req, res) => {
   }
 });
 
-// 获取手续费信息
+// 获取手续费信息（可选 ?tags=tag1,tag2 按市场类型返回分档费率）
 router.get('/fee-info', (req, res) => {
   const isDemoMode = !walletService.isConfigured();
+  const tags = req.query.tags ? req.query.tags.split(',').map(t => t.trim()) : [];
+  const feeRate = tags.length > 0 ? config.getCategoryFeeRate(tags) : config.feeRate;
+
   res.json({
     success: true,
     data: {
       mode: config.platform.feeMode,
-      feeRate: config.feeRate,
-      feePercent: (config.feeRate * 100).toFixed(1) + '%',
+      feeRate,
+      feePercent: (feeRate * 100).toFixed(1) + '%',
+      category: tags.length > 0 ? tags.join(',') : null,
       demo: isDemoMode,
       description: isDemoMode
         ? '⚠️ 演示模式：平台钱包未配置，交易为模拟执行，不提交到 Polymarket 链上'
         : config.platform.feeMode === 'spread'
-          ? '价差模式：买入价格上浮、卖出价格下调，差价归平台（费率 ' + (config.feeRate * 100).toFixed(1) + '%）'
+          ? `价差模式：买入价格上浮、卖出价格下调，差价归平台（费率 ${(feeRate * 100).toFixed(1)}%）`
           : '固定费率模式',
+      categories: Object.entries(config.categoryFeeRates).reduce((acc, [k, v]) => {
+        acc[k] = { feeRate: v, percent: (v * 100).toFixed(1) + '%' };
+        return acc;
+      }, {}),
     },
   });
 });

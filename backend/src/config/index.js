@@ -25,13 +25,67 @@ module.exports = {
     dataApi: process.env.POLYMARKET_DATA_API || 'https://data-api.polymarket.com',
     wsUrl: process.env.POLYMARKET_WS || 'wss://ws-subscriptions-clob.polymarket.com/ws/market',
   },
-  // 默认手续费率 3.5%（覆盖 Polymarket taker fee 最坏情况 Crypto 3.5%）
-  // Polymarket 按公式计算: fee = C × feeRate × p × (1-p)，实际有效费率远超贴出数字
+  // ---------------------------------------------------------------
+  // 分档手续费率（按 Polymarket 市场类型匹配实际 taker 费 + 利润）
+  // Polymarket 公式: fee = C × feeRate × p × (1-p)
   // 各市场在 p=0.5 时的 Polymarket 有效费率：
   //   Geopolitics 0% | Sports 1.5% | Finance/Politics/Tech 2.0%
   //   Economics/Culture/Weather 2.5% | Crypto 3.5%
-  // 平台净利 = 平台收费 - Polymarket taker 费
-  feeRate: parseFloat(process.env.FEE_RATE) || 0.035,
+  // 平台净利 = 平台收费 - Polymarket taker 费（统一留 0.5% 利润）
+  // ---------------------------------------------------------------
+  feeRate: parseFloat(process.env.FEE_RATE) || 0.035,  // 兜底默认
+  categoryFeeRates: {
+    geopolitics:  0.01,   // 1.0% - 0% cost = 1.0% profit（地缘无成本，多赚点）
+    sports:       0.02,   // 2.0% - 1.5% cost = 0.5% profit
+    politics:     0.025,  // 2.5% - 2.0% cost = 0.5% profit
+    finance:      0.025,
+    business:     0.025,
+    economy:      0.03,   // 3.0% - 2.5% cost = 0.5% profit
+    culture:      0.03,
+    crypto:       0.04,   // 4.0% - 3.5% cost = 0.5% profit
+    default:      0.035,  // 3.5% 兜底
+  },
+  // 分类标签 → 费率 key 映射（从 Polymarket 标签匹配）
+  getCategoryFeeRate(tags = []) {
+    const allTags = (Array.isArray(tags) ? tags : []).map(t =>
+      (typeof t === 'string' ? t : (t.label || t.slug || '')).toLowerCase()
+    );
+    const text = allTags.join(' ');
+
+    // 地缘政治
+    if (/geopolit|war|conflict|military|nato|ukraine|russia|china|taiwan|iran|north.?korea/i.test(text))
+      return this.categoryFeeRates.geopolitics;
+
+    // 体育（最常用，先匹配）
+    if (/sport|football|soccer|basketball|nfl|nba|mlb|nhl|ufc|mma|boxing|tennis|f1|formula|olympic|world.?cup|cricket|rugby|golf|esport/i.test(text))
+      return this.categoryFeeRates.sports;
+
+    // 加密货币
+    if (/crypto|bitcoin|btc|eth|token|defi|nft|blockchain|web3/i.test(text))
+      return this.categoryFeeRates.crypto;
+
+    // 政治 & 选举
+    if (/politic|election|vote|congress|senat|president|governor|democrat|republican/i.test(text))
+      return this.categoryFeeRates.politics;
+
+    // 金融
+    if (/financ|stock|market|spx|nasdaq|dow|interest.?rate|fed|treasury|bond|inflation|cpi|gdp/i.test(text))
+      return this.categoryFeeRates.finance;
+
+    // 商业
+    if (/business|compan|startup|ipo|revenue|earnings|acquisition|merger/i.test(text))
+      return this.categoryFeeRates.business;
+
+    // 经济
+    if (/econom|unemployment|recession|tariff|trade.?war|commodity|oil|gold|energy/i.test(text))
+      return this.categoryFeeRates.economy;
+
+    // 文化/娱乐
+    if (/culture|music|movie|film|tv|award|oscar|grammy|celebrity|entertainment/i.test(text))
+      return this.categoryFeeRates.culture;
+
+    return this.categoryFeeRates.default;
+  },
   corsOrigin: (() => {
     const origin = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
     // 生产环境未设置 CORS_ORIGIN 时警告（仅警告，允许 localhost fallback 用于内网部署）
