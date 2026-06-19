@@ -34,7 +34,7 @@ services:
 
       # ---- CORS 允许的前端域名 ----
       - key: CORS_ORIGIN
-        value: https://predix.apay.eu.cc
+        value: https://predix.eu.cc
 
       # ---- Polymarket 配置 ----
       - key: FEE_RATE
