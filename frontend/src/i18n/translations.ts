@@ -372,7 +372,7 @@ export const translations = {
     'terms.changes.title': '条款变更',
     'terms.changes.content': '我们保留随时修改本服务条款的权利：\n\n1. 修改后的条款将在平台上发布，并在发布时生效。\n2. 重大变更将提前通过平台公告或其他合理方式通知。\n3. 继续使用本平台即表示您接受修改后的条款。\n4. 如果您不同意修改后的条款，应停止使用本平台。\n\n建议您定期查看本页面，以了解最新的服务条款。',
     'terms.contact.title': '联系信息',
-    'terms.contact.content': '如果您对本服务条款有任何疑问、意见或建议，请通过以下方式联系我们：\n\n• 官方 Discord：discord.gg/9k2vxqKj\n\n我们通常会在 1-3 个工作日内回复您的消息。',
+    'terms.contact.content': '如果您对本服务条款有任何疑问、意见或建议，请通过以下方式联系我们：\n\n• 官方 Discord：discord.gg/3Yb436SpeB\n\n我们通常会在 1-3 个工作日内回复您的消息。',
 
     // ========== 组合押注 ==========
     'combo.title': '组合押注',
