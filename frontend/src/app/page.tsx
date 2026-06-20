@@ -24,7 +24,14 @@ export default function Home() {
   const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
   const [popularOnly, setPopularOnly] = useState(false); // 默认显示全部市场
+  const [speedOnly, setSpeedOnly] = useState(false);     // 仅显示极速 5 分钟市场
   const POPULAR_VOLUME_THRESHOLD = 0; // 热门门槛（当前关闭，显示全部）
+
+  // 判断是否为极速市场（Up or Down 模式）
+  const isSpeedMarket = (m: any) => {
+    const q = (m.question || m.title || '').toLowerCase();
+    return q.includes('up or down') || q.includes('up/down');
+  };
 
   // 分类市场数据（从 API 按 tag 拉取）
   const [categoryMarkets, setCategoryMarkets] = useState<Record<string, any[]>>({});
@@ -85,6 +92,11 @@ export default function Home() {
       result = result.filter((m: any) =>
         parseFloat(m.volume24hr || m.volume || '0') >= POPULAR_VOLUME_THRESHOLD
       );
+    }
+
+    // 仅显示极速 5 分钟市场
+    if (speedOnly) {
+      result = result.filter((m: any) => isSpeedMarket(m));
     }
 
     if (searchQuery) {
@@ -167,6 +179,21 @@ export default function Home() {
             <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
           </svg>
           {popularOnly ? '仅热门' : '显示全部'}
+        </button>
+
+        {/* 极速切换 */}
+        <button
+          onClick={() => setSpeedOnly(!speedOnly)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium whitespace-nowrap transition-colors transition-shadow duration-300 ${
+            speedOnly
+              ? 'bg-[var(--accent-emerald)]/10 border-[var(--accent-emerald)]/30 text-[var(--accent-emerald)] shadow-[0_0_12px_rgba(16,185,129,0.10)]'
+              : 'bg-[var(--bg-card)] border-[var(--border-light)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--border)]'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
+          </svg>
+          {speedOnly ? '⚡ 极速中' : '⚡ 极速'}
         </button>
 
           {/* 分类 Tab */}
