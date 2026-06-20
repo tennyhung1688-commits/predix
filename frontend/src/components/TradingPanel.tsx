@@ -122,7 +122,7 @@ export function TradingPanel({ market }: TradingPanelProps) {
 
     setLoading(true);
     try {
-      const payload: any = { tokenId, side, tags: marketTags };
+      const payload: any = { tokenId, side, tags: marketTags, idempotencyKey: crypto.randomUUID() };
       if (isMarket) {
         payload.amount = numAmount;
         payload.orderType = 'MARKET_FAK';
