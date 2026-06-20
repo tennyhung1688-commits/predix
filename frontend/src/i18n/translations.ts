@@ -30,6 +30,11 @@ export const translations = {
     'home.all': '全部',
     'home.more': '更多',
     'home.trending': '热门',
+    'home.popularOnly': '仅热门',
+    'home.showAll': '显示全部',
+    'home.speed': '⚡ 极速',
+    'home.speedActive': '⚡ 极速中',
+    'home.demo': '演示',
 
     // 首页 - 市场列表
     'home.loadError': '加载失败',
@@ -66,6 +71,8 @@ export const translations = {
     'trade.polling': '轮询模式',
     'trade.spread': '价差',
     'trade.actualReceive': '实际收入',
+    'trade.success': '成功',
+    'trade.tradeFailed': '交易失败，请重试',
     // 订单类型
     'trade.orderType': '订单类型',
     'trade.orderTypeGTC': 'GTC — 一直有效',
@@ -588,6 +595,11 @@ export const translations = {
     'home.all': 'All',
     'home.more': 'More',
     'home.trending': 'Trending',
+    'home.popularOnly': 'Hot Only',
+    'home.showAll': 'Show All',
+    'home.speed': '⚡ Speed',
+    'home.speedActive': '⚡ Speed On',
+    'home.demo': 'Demo',
 
     // Home - Market List
     'home.loadError': 'Failed to load',
@@ -624,6 +636,8 @@ export const translations = {
     'trade.polling': 'Polling',
     'trade.spread': 'Spread',
     'trade.actualReceive': 'Actual Receive',
+    'trade.success': 'Success',
+    'trade.tradeFailed': 'Trade failed, please retry',
     // Order Type
     'trade.orderType': 'Order Type',
     'trade.orderTypeGTC': 'GTC — Good \'Til Cancelled',

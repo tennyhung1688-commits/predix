@@ -200,7 +200,7 @@ export default function Home() {
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
           </svg>
-          {popularOnly ? '仅热门' : '显示全部'}
+          {popularOnly ? t('home.popularOnly') : t('home.showAll')}
         </button>
 
         {/* 极速切换 */}
@@ -215,7 +215,7 @@ export default function Home() {
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
           </svg>
-          {speedOnly ? '⚡ 极速中' : '⚡ 极速'}
+          {speedOnly ? t('home.speedActive') : t('home.speed')}
         </button>
 
           {/* 分类 Tab */}

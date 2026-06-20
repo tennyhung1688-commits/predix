@@ -134,13 +134,13 @@ export function TradingPanel({ market }: TradingPanelProps) {
       const result: any = await api.placeOrder(payload);
       setAmount('');
       if (!isMarket) setPrice('');
-      const demoTag = result.data?.demo ? ' [演示]' : '';
+      const demoTag = result.data?.demo ? ` [${t('home.demo')}]` : '';
       const desc = isMarket
         ? `${t('trade.marketOrder')}${demoTag}`
-        : `${numAmount} 份 @ ${numPrice.toFixed(4)} USDC${demoTag}`;
-      showToast('success', `${side === 'BUY' ? '买入' : '卖出'}成功！${desc}`);
+        : `${numAmount} ${t('trade.shares')} @ ${numPrice.toFixed(4)} USDC${demoTag}`;
+      showToast('success', `${side === 'BUY' ? t('trade.buy') : t('trade.sell')} ${t('trade.success')}! ${desc}`);
     } catch (err: any) {
-      showToast('error', err.message || '交易失败，请重试');
+      showToast('error', err.message || t('trade.tradeFailed'));
     } finally {
       setLoading(false);
     }
