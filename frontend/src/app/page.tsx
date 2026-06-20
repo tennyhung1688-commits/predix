@@ -33,6 +33,10 @@ export default function Home() {
     return q.includes('up or down') || q.includes('up/down');
   };
 
+  // 极速市场缓存
+  const [speedMarkets, setSpeedMarkets] = useState<any[]>([]);
+  const [speedLoading, setSpeedLoading] = useState(false);
+
   // 分类市场数据（从 API 按 tag 拉取）
   const [categoryMarkets, setCategoryMarkets] = useState<Record<string, any[]>>({});
   const [categoryLoading, setCategoryLoading] = useState(false);
@@ -51,6 +55,19 @@ export default function Home() {
         ));
       })
       .catch(() => {});
+  }, []);
+
+  // 预加载极速市场（crypto 标签）
+  useEffect(() => {
+    if (speedMarkets.length > 0) return;
+    setSpeedLoading(true);
+    api.getMarkets({ tag: 'crypto', limit: '200', order: 'createdAt' })
+      .then((res: any) => {
+        const all = res.data || [];
+        setSpeedMarkets(all.filter((m: any) => isSpeedMarket(m)));
+      })
+      .catch(() => {})
+      .finally(() => setSpeedLoading(false));
   }, []);
 
   // 当切换 tab 时，按需从 API 拉取对应分类
@@ -94,9 +111,14 @@ export default function Home() {
       );
     }
 
-    // 仅显示极速 5 分钟市场
+    // 仅显示极速 5 分钟市场 — 合并预加载的极速缓存
     if (speedOnly) {
-      result = result.filter((m: any) => isSpeedMarket(m));
+      if (activeTab === 'all' && speedMarkets.length > 0) {
+        // 全部 tab 下从预加载的极速缓存中取，保证完整
+        result = speedMarkets;
+      } else {
+        result = result.filter((m: any) => isSpeedMarket(m));
+      }
     }
 
     if (searchQuery) {
