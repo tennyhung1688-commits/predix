@@ -31,40 +31,19 @@ module.exports = {
   // 各市场在 p=0.5 时的 Polymarket 有效费率：
   //   Geopolitics 0% | Sports 1.5% | Finance/Politics/Tech 2.0%
   //   Economics/Culture/Weather 2.5% | Crypto 3.5%
-  // 平台净利 = 平台收费 - Polymarket taker 费（留 1.0% 含 0.4% 返佣预算）
+  // 平台净利 = 平台收费 - Polymarket taker 费（统一留 0.5% 利润）
   // ---------------------------------------------------------------
-  feeRate: parseFloat(process.env.FEE_RATE) || 0.04,   // 兜底默认 4%
+  feeRate: parseFloat(process.env.FEE_RATE) || 0.035,  // 兜底默认
   categoryFeeRates: {
-    geopolitics:  0.015,  // 1.5% - 0% cost = 1.5% profit
-    sports:       0.025,  // 2.5% - 1.5% cost = 1.0% profit
-    politics:     0.03,   // 3.0% - 2.0% cost = 1.0% profit
-    finance:      0.03,
-    business:     0.03,
-    economy:      0.035,  // 3.5% - 2.5% cost = 1.0% profit
-    culture:      0.035,
-    crypto:       0.045,  // 4.5% - 3.5% cost = 1.0% profit
-    default:      0.04,   // 4.0% 兜底
-  },
-  // Polymarket taker 费率（按市场类型，p=0.5 时的有效费率）
-  polymarketCost: {
-    geopolitics:  0,
-    sports:       0.015,
-    politics:     0.02,
-    finance:      0.02,
-    business:     0.02,
-    economy:      0.025,
-    culture:      0.025,
-    crypto:       0.035,
-    default:      0.035,
-  },
-  // 根据 PrediX 费率反向匹配 Polymarket 成本
-  getPolyCostByFeeRate(prediXFeeRate) {
-    for (const [key, rate] of Object.entries(this.categoryFeeRates)) {
-      if (Math.abs(rate - prediXFeeRate) < 0.001) {
-        return this.polymarketCost[key] || this.polymarketCost.default;
-      }
-    }
-    return this.polymarketCost.default;
+    geopolitics:  0.01,   // 1.0% - 0% cost = 1.0% profit（地缘无成本，多赚点）
+    sports:       0.02,   // 2.0% - 1.5% cost = 0.5% profit
+    politics:     0.025,  // 2.5% - 2.0% cost = 0.5% profit
+    finance:      0.025,
+    business:     0.025,
+    economy:      0.03,   // 3.0% - 2.5% cost = 0.5% profit
+    culture:      0.03,
+    crypto:       0.04,   // 4.0% - 3.5% cost = 0.5% profit
+    default:      0.035,  // 3.5% 兜底
   },
   // 分类标签 → 费率 key 映射（从 Polymarket 标签匹配）
   getCategoryFeeRate(tags = []) {
@@ -127,7 +106,5 @@ module.exports = {
     funderAddress: process.env.PLATFORM_FUNDER_ADDRESS || '',
     feeMode: process.env.PLATFORM_FEE_MODE || 'spread',
     minWithdrawAmount: parseFloat(process.env.MIN_WITHDRAW_AMOUNT) || 10,
-    newUserBonus: parseFloat(process.env.NEW_USER_BONUS) || 100,
-    depositAddress: process.env.PLATFORM_WALLET_ADDRESS || '',
   },
 };
