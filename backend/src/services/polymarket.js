@@ -268,10 +268,104 @@ const polymarketService = {
     f1:          { id: 435,   label: '🏎️ F1',          slug: 'formula1' },
   },
 
-  // 按标签获取市场（通过 events 端点，events 有完整的 tags）
-  // 按标签获取市场（委托给 getMarkets 统一处理）
+  // 按标签获取市场 — 通过 /events 端点（tag 过滤可靠）
+  // /markets 端点的 tag 参数不可靠，会返回不匹配的市场
   async getMarketsByTag(tag, params = {}) {
-    return this.getMarkets({ ...params, tag });
+    const limit = parseInt(params.limit) || 50;
+    const offset = parseInt(params.offset) || 0;
+
+    // 查找分类配置，获取 tag_id 和 slug
+    const catConfig = this.CATEGORIES[tag] || this.CATEGORIES[Object.keys(this.CATEGORIES).find(k =>
+      this.CATEGORIES[k].slug === tag
+    )];
+    const tagId = catConfig?.id;
+    const tagSlug = catConfig?.slug || tag;
+
+    try {
+      // 方案1：通过 /events 端点获取（tag 过滤可靠）
+      const { data } = await gammaClient.get('/events', {
+        params: {
+          limit: Math.max(200, (limit + offset) * 3),
+          offset: 0,
+          active: true,
+          closed: false,
+          order: 'volume24hr',
+          ascending: false,
+          tag_id: tagId || undefined,
+          tag: tagSlug,
+        },
+      });
+
+      const events = Array.isArray(data) ? data : (data?.data || data || []);
+
+      // 从事件中提取所有市场
+      const markets = [];
+      for (const event of events) {
+        if (event.markets) {
+          for (const m of event.markets) {
+            markets.push({
+              ...m,
+              eventTitle: event.title,
+              eventSlug: event.slug,
+              eventTags: event.tags || [],
+              // 直接从事件继承 tags，不需要等 _attachEventTags
+              tags: event.tags ? event.tags.map(t => t.label || t).filter(Boolean) : [],
+            });
+          }
+        }
+      }
+
+      // 按交易量降序排序
+      markets.sort((a, b) => {
+        const va = parseFloat(a.volume24hr || a.volume || 0);
+        const vb = parseFloat(b.volume24hr || b.volume || 0);
+        return vb - va;
+      });
+
+      // 本地兜底过滤：确保市场 tags 包含目标标签
+      const filtered = markets.filter(m => {
+        if (!m.tags || m.tags.length === 0) return false;
+        const tagsLower = m.tags.map(t => typeof t === 'string' ? t.toLowerCase() : String(t).toLowerCase());
+        // 检查 slug 或 label 匹配
+        return tagsLower.includes(tagSlug.toLowerCase())
+          || tagsLower.some(t => tagSlug.toLowerCase().includes(t) || t.includes(tagSlug.toLowerCase()));
+      });
+
+      // 如果事件过滤结果为空，回退到 /markets 端点 + 本地标签过滤
+      const result = filtered.length > 0 ? filtered : markets;
+
+      return {
+        markets: result.slice(offset, offset + limit),
+        nextCursor: null,
+        hasMore: result.length > offset + limit,
+      };
+    } catch (err) {
+      console.warn(`[polymarket] getMarketsByTag("${tag}") events端点失败，回退到markets端点:`, err.message);
+      // 回退：使用原 /markets 方式，但加强本地过滤
+      const markets = await this._getDirectMarkets({
+        limit: limit * 3,
+        offset: offset || 0,
+        order: 'createdAt',
+        ascending: false,
+        closed: false,
+        tag: tagSlug,
+      }).catch(() => []);
+
+      // 附加事件标签后严格过滤
+      await this._attachEventTags(markets);
+
+      const filtered = markets.filter(m => {
+        if (!m.tags || m.tags.length === 0) return false;
+        const tagsLower = m.tags.map(t => typeof t === 'string' ? t.toLowerCase() : String(t).toLowerCase());
+        return tagsLower.includes(tagSlug.toLowerCase());
+      });
+
+      return {
+        markets: filtered.slice(0, limit),
+        nextCursor: null,
+        hasMore: filtered.length > limit,
+      };
+    }
   },
 
   // 获取世界杯相关市场（获取体育事件后本地过滤）

@@ -9,6 +9,7 @@ const router = express.Router();
 router.get('/categories', (req, res) => {
   const categories = Object.entries(polymarketService.CATEGORIES).map(([key, val]) => ({
     id: key,
+    tagId: val.id,
     label: val.label,
     slug: val.slug,
   }));
