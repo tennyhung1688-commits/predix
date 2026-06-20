@@ -45,6 +45,27 @@ module.exports = {
     crypto:       0.045,  // 4.5% - 3.5% cost = 1.0% profit
     default:      0.04,   // 4.0% 兜底
   },
+  // Polymarket taker 费率（按市场类型，p=0.5 时的有效费率）
+  polymarketCost: {
+    geopolitics:  0,
+    sports:       0.015,
+    politics:     0.02,
+    finance:      0.02,
+    business:     0.02,
+    economy:      0.025,
+    culture:      0.025,
+    crypto:       0.035,
+    default:      0.035,
+  },
+  // 根据 PrediX 费率反向匹配 Polymarket 成本
+  getPolyCostByFeeRate(prediXFeeRate) {
+    for (const [key, rate] of Object.entries(this.categoryFeeRates)) {
+      if (Math.abs(rate - prediXFeeRate) < 0.001) {
+        return this.polymarketCost[key] || this.polymarketCost.default;
+      }
+    }
+    return this.polymarketCost.default;
+  },
   // 分类标签 → 费率 key 映射（从 Polymarket 标签匹配）
   getCategoryFeeRate(tags = []) {
     const allTags = (Array.isArray(tags) ? tags : []).map(t =>

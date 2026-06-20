@@ -1,6 +1,5 @@
 const express = require('express');
 const balanceService = require('../services/balance');
-const config = require('../config');
 const { requireAuth } = require('../middleware/auth');
 const { withdrawLimiter } = require('../middleware/rateLimiter');
 const { depositRules, withdrawRules, handleValidation } = require('../middleware/validate');
@@ -14,23 +13,6 @@ router.get('/balance', requireAuth, async (req, res) => {
   try {
     const balance = await balanceService.getBalance(req.user.walletAddress);
     res.json({ success: true, data: balance });
-  } catch (err) {
-    sendError(res, err);
-  }
-});
-
-// 获取充值信息（平台钱包地址 + 新用户奖励）
-router.get('/balance/deposit-info', requireAuth, async (req, res) => {
-  try {
-    const user = await balanceService.getOrCreateUser(req.user.walletAddress);
-    res.json({
-      success: true,
-      data: {
-        platformAddress: config.platform.depositAddress,
-        newUserBonus: config.platform.newUserBonus,
-        note: `转账 USDC (Polygon) 到平台地址，到账后联系客服确认。首次注册赠送 ${config.platform.newUserBonus} USDC。`,
-      },
-    });
   } catch (err) {
     sendError(res, err);
   }

@@ -9,14 +9,15 @@ const { AppError } = require('../lib/errors');
 class BalanceService {
   /**
    * 获取或创建用户
-   * 新用户自动获得 100 USDC 体验金
+   * 演示模式下，新用户自动获得 1000 USDC 初始余额
    */
   async getOrCreateUser(walletAddress) {
     let user = await prisma.user.findUnique({
       where: { walletAddress: walletAddress.toLowerCase() },
     });
     if (!user) {
-      const initialBalance = 100; // 新用户赠送 100 USDC
+      const isDemoMode = !config.platform.polyApiKey || !config.platform.polyApiSecret;
+      const initialBalance = isDemoMode ? 1000 : 0; // 演示模式赠送 1000 USDC
 
       user = await prisma.user.create({
         data: {
@@ -26,17 +27,20 @@ class BalanceService {
         },
       });
 
-      await prisma.transaction.create({
-        data: {
-          userId: user.id,
-          type: 'DEPOSIT',
-          amount: initialBalance,
-          balance: initialBalance,
-          desc: `🎁 新用户注册赠送 ${initialBalance} USDC`,
-        },
-      });
+      // 演示模式记录初始赠送流水
+      if (isDemoMode && initialBalance > 0) {
+        await prisma.transaction.create({
+          data: {
+            userId: user.id,
+            type: 'DEPOSIT',
+            amount: initialBalance,
+            balance: initialBalance,
+            desc: `🎁 演示模式初始赠送 ${initialBalance} USDC`,
+          },
+        });
+      }
 
-      console.log(`👤 新用户注册: ${walletAddress.toLowerCase()} (赠送 ${initialBalance} USDC)`);
+      console.log(`👤 新用户注册: ${walletAddress.toLowerCase()}${isDemoMode ? ` (演示模式, 赠送 ${initialBalance} USDC)` : ''}`);
     }
     return user;
   }
