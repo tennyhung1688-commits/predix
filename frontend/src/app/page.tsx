@@ -23,8 +23,8 @@ export default function Home() {
   const [trendingTags, setTrendingTags] = useState<{ id: number; label: string }[]>([]);
   const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
-  const [popularOnly, setPopularOnly] = useState(true); // 默认仅显示热门（24h交易量 >= $100）
-  const POPULAR_VOLUME_THRESHOLD = 100; // 24h 最低交易量门槛（美元）
+  const [popularOnly, setPopularOnly] = useState(false); // 默认显示全部市场
+  const POPULAR_VOLUME_THRESHOLD = 0; // 热门门槛（当前关闭，显示全部）
 
   // 分类市场数据（从 API 按 tag 拉取）
   const [categoryMarkets, setCategoryMarkets] = useState<Record<string, any[]>>({});
