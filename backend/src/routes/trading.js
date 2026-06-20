@@ -164,6 +164,29 @@ router.post('/order', requireAuth,
     // 锁定用户余额
     await balanceService.lockBalance(user.id, userCost);
 
+    // 幂等性检查：防重复提交
+    const idempotencyKey = req.body.idempotencyKey;
+    if (idempotencyKey) {
+      const existingTrade = await prisma.trade.findFirst({
+        where: { userId: user.id, idempotencyKey },
+      });
+      if (existingTrade) {
+        // 已有同名交易，直接返回（不重复执行）
+        return res.json({
+          success: true,
+          data: {
+            idempotent: true,
+            trade: {
+              id: existingTrade.id,
+              side: existingTrade.side,
+              size: existingTrade.size,
+              status: existingTrade.status,
+            },
+          },
+        });
+      }
+    }
+
     // 记录交易（pending 状态）
     const trade = await prisma.trade.create({
       data: {
@@ -175,6 +198,7 @@ router.post('/order', requireAuth,
         executePrice: isMarketOrder ? 0 : spread.executePrice,
         spreadFee: spread.spreadFee || (isMarketOrder ? parsedAmount * feeRate : 0),
         status: 'pending',
+        idempotencyKey: idempotencyKey || null,
       },
     });
 

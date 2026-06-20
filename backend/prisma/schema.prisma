@@ -100,6 +100,7 @@ model Trade {
   executePrice      Float    // 平台实际执行价格（含差价）
   spreadFee         Float    // 差价收入 = abs(originalPrice - executePrice) * size
   polymarketOrderId String?
+  idempotencyKey    String?   // 幂等键，防重复提交
   status            String   @default("pending") // pending, filled, cancelled, failed
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
