@@ -198,37 +198,59 @@ const polymarketService = {
     const tagId = cat ? cat.id : tag;
     const tagSlug = cat ? cat.slug : tag;
     
-    // 先从 events 端点获取带标签的事件
-    // 同时传 tag_id 和 tag 以兼容不同版本的 Gamma API
-    const eventsResult = await this.getEvents({
-      limit: Math.ceil(limit / 3), // 每个事件大概有 2-3 个市场
-      offset: params.offset || 0,
-      active: true,
-      closed: false,
-      order: 'volume24hr',
-      ascending: false,
-      tag_id: tagId,
-      tag: tagSlug,
-    });
+    // 同时拉取：事件端点（大交易量市场）+ 直接市场端点（含 5 分钟极速市场）
+    const [eventsResult, directResult] = await Promise.all([
+      this.getEvents({
+        limit: Math.ceil(limit / 3),
+        offset: params.offset || 0,
+        active: true,
+        closed: false,
+        order: 'volume24hr',
+        ascending: false,
+        tag_id: tagId,
+        tag: tagSlug,
+      }).catch(() => ({ markets: [] })),
+      this.getMarkets({
+        limit: Math.ceil(limit / 2),
+        offset: 0,
+        closed: false,
+        order: 'createdAt',
+        ascending: false,
+        tag: tagSlug,
+      }).catch(() => ({ markets: [] })),
+    ]);
     
-    // getEvents 现在返回 { markets: [...events], nextCursor, hasMore }
+    // 合并去重
+    const seen = new Set();
+    const allMarkets = [];
+    
+    // 事件中的市场（有完整事件信息）
     const events = eventsResult.markets || eventsResult;
     const eventArray = Array.isArray(events) ? events : [];
-    
-    // 提取所有市场
-    const markets = [];
     for (const event of eventArray) {
       if (event.markets) {
         for (const m of event.markets) {
-          markets.push(m);
+          if (!seen.has(m.id)) {
+            seen.add(m.id);
+            allMarkets.push(m);
+          }
         }
       }
     }
     
+    // 直接 API 的市场（独立的极速市场等）
+    const directs = directResult.markets || [];
+    for (const m of directs) {
+      if (!seen.has(m.id)) {
+        seen.add(m.id);
+        allMarkets.push(m);
+      }
+    }
+    
     return {
-      markets: markets.slice(0, limit),
-      nextCursor: null, // 通过 events 聚合的，不支持 cursor
-      hasMore: markets.length > limit,
+      markets: allMarkets.slice(0, limit),
+      nextCursor: null,
+      hasMore: allMarkets.length > limit,
     };
   },
 
