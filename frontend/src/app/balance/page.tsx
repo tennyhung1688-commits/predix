@@ -21,6 +21,28 @@ export default function BalancePage() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // 自动验证充值
+  const [txHash, setTxHash] = useState('');
+
+  const handleVerifyDeposit = useCallback(async () => {
+    if (!txHash) return;
+    setSubmitting(true);
+    try {
+      const res: any = await api.post('/balance/deposit/verify', { txHash });
+      if (res?.data?.success) {
+        setToast({ type: 'success', message: res.data.data.message || `到账 ${res.data.data.amount} USDC` });
+        setTxHash('');
+        loadData();
+      } else {
+        setToast({ type: 'error', message: res?.data?.error || res?.error || '验证失败' });
+      }
+    } catch (err: any) {
+      setToast({ type: 'error', message: err.message || '网络错误' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [txHash]);
+
   useEffect(() => {
     loadData();
     api.get('/balance/deposit-info')
@@ -137,8 +159,27 @@ export default function BalancePage() {
                 {copied ? '✅ 已复制' : '📋 复制'}
               </button>
             </div>
-            <div className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-              从你的钱包/交易所转账 USDC (Polygon 网络)，到账后在 <span className="text-[var(--accent-amber)]">Discord/微信群</span> 发 txHash 确认。
+            <div className="text-[10px] text-[var(--text-muted)] leading-relaxed mb-3">
+              从你的钱包/交易所转账 USDC (Polygon 网络) 到上述地址。
+            </div>
+
+            {/* 自动验证 */}
+            <div className="text-[10px] uppercase text-[var(--text-muted)] mb-1.5">输入交易哈希 (txHash) 自动确认到账</div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={txHash}
+                onChange={e => setTxHash(e.target.value)}
+                placeholder="0x..."
+                className="flex-1 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-xs font-mono focus:outline-none focus:border-[var(--accent-blue)]"
+              />
+              <button
+                onClick={handleVerifyDeposit}
+                disabled={submitting || !txHash}
+                className="px-4 py-2 rounded-lg bg-[var(--accent-blue)] text-white text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shrink-0"
+              >
+                {submitting ? '验证中...' : '确认到账'}
+              </button>
             </div>
           </>
         )}

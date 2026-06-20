@@ -64,6 +64,15 @@ export async function fetchAPI<T>(endpoint: string, options?: RequestInit): Prom
 }
 
 export const api = {
+  // 通用
+  get: <T>(endpoint: string) =>
+    fetchAPI<T>(endpoint),
+  post: <T>(endpoint: string, body?: any) =>
+    fetchAPI<T>(endpoint, {
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
+
   // 市场
   getMarkets: (params?: Record<string, string>) =>
     fetchAPI<ApiResponse<Market[]>>(`/markets?${new URLSearchParams(params).toString()}`),
@@ -317,6 +326,8 @@ export const api = {
   // ========== 推荐奖励 ==========
   getReferral: () =>
     fetchAPI<ApiResponse<ReferralData>>('/referral'),
+  getReferralLeaderboard: (period?: string) =>
+    fetchAPI<ApiResponse<LeaderboardEntry[]>>(`/referral/leaderboard?period=${period || 'all'}`),
   generateReferralCode: () =>
     fetchAPI<ApiResponse<{ code: string }>>('/referral/generate-code', { method: 'POST' }),
   lookupReferral: (code: string) =>
