@@ -52,7 +52,6 @@ const polymarketService = {
       order: params.order || 'volume24hr',
       ascending: params.ascending || false,
       tag: params.tag || undefined,
-      ...params,
     }).catch(() => ({ markets: [] }));
 
     const eventArray = Array.isArray(events.markets) ? events.markets : [];
@@ -112,7 +111,6 @@ const polymarketService = {
         ascending: params.ascending !== false,
         closed: params.closed || false,
         tag: params.tag || undefined,
-        ...params,
       },
     });
     return Array.isArray(data) ? data : (data?.data || data || []);
@@ -127,8 +125,10 @@ const polymarketService = {
         offset: params.offset || 0,
         active: params.active !== false,
         closed: params.closed || false,
+        order: params.order || 'volume24hr',
+        ascending: params.ascending !== false ? false : true,
+        tag_id: params.tag_id || undefined,
         tag: params.tag || undefined,
-        ...params,
       },
     });
 
