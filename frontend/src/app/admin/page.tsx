@@ -321,7 +321,6 @@ export default function AdminPage() {
                         <th className="px-4 py-3 text-left text-[var(--text-muted)] font-medium">用户</th>
                         <th className="px-4 py-3 text-left text-[var(--text-muted)] font-medium">目标地址</th>
                         <th className="px-4 py-3 text-right text-[var(--text-muted)] font-medium">金额</th>
-                        <th className="px-4 py-3 text-center text-[var(--text-muted)] font-medium">备注</th>
                         <th className="px-4 py-3 text-center text-[var(--text-muted)] font-medium">状态</th>
                         <th className="px-4 py-3 text-center text-[var(--text-muted)] font-medium">操作</th>
                       </tr>
@@ -329,7 +328,7 @@ export default function AdminPage() {
                     <tbody>
                       {withdraws.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-[var(--text-muted)]">暂无提现申请</td>
+                          <td colSpan={6} className="px-4 py-8 text-center text-[var(--text-muted)]">暂无提现申请</td>
                         </tr>
                       ) : (
                         withdraws.map((wd: any) => (
@@ -345,15 +344,6 @@ export default function AdminPage() {
                             </td>
                             <td className="px-4 py-3 text-right text-[var(--text-primary)] font-medium">
                               {wd.amount} USDC
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              {wd.note === '新地址' ? (
-                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-500/10 text-red-400">⚠ {wd.note}</span>
-                              ) : wd.note ? (
-                                <span className="text-xs text-[var(--text-muted)]">{wd.note}</span>
-                              ) : (
-                                <span className="text-xs text-[var(--text-muted)]">—</span>
-                              )}
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span className={`px-2 py-0.5 rounded text-xs font-medium ${
