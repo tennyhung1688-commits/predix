@@ -210,20 +210,17 @@ const polymarketService = {
       }
     }
 
-      // 附加标签到市场
-      for (const m of markets) {
-        const events = m.events || [];
-        const allTags = [];
-        for (const e of events) {
-          const tags = tagMap.get(String(e.id));
-          if (tags) allTags.push(...tags);
-        }
-        if (allTags.length > 0) {
-          m.tags = allTags;
-        }
+    // 附加标签到市场
+    for (const m of markets) {
+      const events = m.events || [];
+      const allTags = [];
+      for (const e of events) {
+        const tags = tagMap.get(String(e.id));
+        if (tags) allTags.push(...tags);
       }
-    } catch (err) {
-      console.warn('[polymarket] 获取事件标签失败:', err.message);
+      if (allTags.length > 0) {
+        m.tags = allTags;
+      }
     }
   },
 
