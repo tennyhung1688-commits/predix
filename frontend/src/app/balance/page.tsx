@@ -186,13 +186,16 @@ export default function BalancePage() {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-2">
         <button
           onClick={() => setShowWithdraw(true)}
           className="flex-1 py-2.5 rounded-xl border border-[var(--red-border)] text-[var(--red)] text-sm font-semibold hover:bg-[var(--red-bg)] transition-colors"
         >
           提现
         </button>
+      </div>
+      <div className="text-[10px] text-[var(--text-muted)] mb-6 text-center">
+        每日上限 1000 USDC · 每天最多 3 次 · 最低 10 USDC · 新账户 24h 后可提
       </div>
 
       {/* Withdraw Modal */}

@@ -81,8 +81,9 @@ model Withdraw {
   toAddress   String
   amount      Float
   fee         Float    @default(0)
-  status      String   @default("pending") // pending, processing, completed, failed
+  status      String   @default("pending") // pending, processing, completed, failed, rejected
   txHash      String?
+  note        String?  // 备注（如：新地址）
   createdAt   DateTime @default(now())
   processedAt DateTime?
 

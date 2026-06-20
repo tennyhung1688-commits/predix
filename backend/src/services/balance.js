@@ -91,11 +91,53 @@ class BalanceService {
   }
 
   /**
+   * 提现安全校验
+   */
+  async _validateWithdrawSafety(user, amount) {
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 3600000);
+
+    // 1. 每日提现次数限制
+    const dailyCount = await prisma.withdraw.count({
+      where: {
+        userId: user.id,
+        createdAt: { gte: yesterday },
+        status: { not: 'rejected' },
+      },
+    });
+    const maxDailyCount = parseInt(process.env.MAX_WITHDRAW_COUNT) || 3;
+    if (dailyCount >= maxDailyCount) {
+      throw new AppError(`每日最多提现 ${maxDailyCount} 次`, 400);
+    }
+
+    // 2. 每日提现金额限制
+    const dailyTotal = await prisma.withdraw.aggregate({
+      where: {
+        userId: user.id,
+        createdAt: { gte: yesterday },
+        status: { not: 'rejected' },
+      },
+      _sum: { amount: true },
+    });
+    const maxDailyAmount = parseFloat(process.env.MAX_DAILY_WITHDRAW) || 1000;
+    if ((dailyTotal._sum.amount || 0) + amount > maxDailyAmount) {
+      throw new AppError(`每日提现上限 ${maxDailyAmount} USDC`, 400);
+    }
+
+    // 3. 账户年龄检查（注册 24 小时后才能提现）
+    const accountAge = now.getTime() - new Date(user.createdAt).getTime();
+    if (accountAge < 24 * 3600000) {
+      const hoursLeft = Math.ceil((24 * 3600000 - accountAge) / 3600000);
+      throw new AppError(`新账户需等待 24 小时才能提现，还需 ${hoursLeft} 小时`, 400);
+    }
+  }
+
+  /**
    * 提现申请
    */
   async withdraw(walletAddress, toAddress, amount) {
     const user = await this.getOrCreateUser(walletAddress);
-    const minAmount = 10; // 最低提现金额
+    const minAmount = parseFloat(process.env.MIN_WITHDRAW_AMOUNT) || 10;
 
     if (amount < minAmount) {
       throw new AppError(`最低提现金额为 ${minAmount} USDC`, 400);
@@ -105,6 +147,19 @@ class BalanceService {
       throw new AppError('可用余额不足', 400);
     }
 
+    // 安全检查
+    await this._validateWithdrawSafety(user, amount);
+
+    // 检测新地址（首次提现到该地址需确认）
+    const existingWithdraw = await prisma.withdraw.findFirst({
+      where: {
+        userId: user.id,
+        toAddress: toAddress.toLowerCase(),
+        status: 'completed',
+      },
+    });
+    const isNewAddress = !existingWithdraw;
+
     // 创建提现记录
     const withdraw = await prisma.withdraw.create({
       data: {
@@ -113,6 +168,7 @@ class BalanceService {
         amount,
         status: 'pending',
         fee: 0,
+        note: isNewAddress ? '新地址' : null,
       },
     });
 
