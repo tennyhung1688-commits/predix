@@ -90,13 +90,14 @@ const polymarketService = {
     }
     if (eventIds.size === 0) return;
 
-    // 批量获取事件（一次调用获取全部）
+    // 批量获取事件（按创建时间倒序取最新事件）
     try {
       const allEvents = [];
       const { data } = await gammaClient.get('/events', {
         params: {
-          limit: Math.max(200, eventIds.size * 2),
-          closed: true, // 包括已关闭的事件
+          limit: Math.max(500, eventIds.size * 5),
+          order: 'createdAt',
+          ascending: false,
         },
       });
       const eventsArray = Array.isArray(data) ? data : (data?.data || data || []);
