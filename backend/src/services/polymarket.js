@@ -42,16 +42,29 @@ const polymarketService = {
   // 获取市场列表（从 /markets 端点获取，附加事件标签）
   async getMarkets(params = {}) {
     const limit = parseInt(params.limit) || 50;
+    const hasTag = !!params.tag;
 
-    // 主源：/markets 端点（支持 tag 过滤 + cursor 分页）
+    // Polymarket API bug: tag + order=volume24hr 会导致 tag 过滤失效
+    // 因此有标签时先用 createdAt 排序拿到正确数据，再本地按 volume 排
+    const apiOrder = hasTag ? 'createdAt' : (params.order || 'volume24hr');
+
     const markets = await this._getDirectMarkets({
-      limit,
+      limit: hasTag ? limit * 3 : limit, // 更多数据以便本地排序
       offset: params.offset || 0,
-      order: params.order || 'volume24hr',
-      ascending: params.ascending || false,
+      order: apiOrder,
+      ascending: hasTag ? false : (params.ascending || false),
       closed: params.closed || false,
       tag: params.tag || undefined,
     }).catch(() => []);
+
+    // 有标签时本地按交易量重新排序
+    if (hasTag) {
+      markets.sort((a, b) => {
+        const va = parseFloat(a.volume24hr || a.volume || 0);
+        const vb = parseFloat(b.volume24hr || b.volume || 0);
+        return vb - va; // descending
+      });
+    }
 
     // 从市场的事件引用中收集标签
     await this._attachEventTags(markets);
