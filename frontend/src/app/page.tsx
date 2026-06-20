@@ -170,7 +170,7 @@ export default function Home() {
         </button>
 
           {/* 分类 Tab */}
-        <div className="flex gap-1 bg-[var(--bg-card)] border border-[var(--border-light)] rounded-xl p-1 overflow-x-auto scrollbar-hide snap-x snap-mandatory items-center flex-1 min-w-0">
+        <div className="flex gap-1 bg-[var(--bg-card)] border border-[var(--border-light)] rounded-xl p-1 overflow-x-auto snap-x snap-mandatory items-center flex-1 min-w-0">
           {/* "全部" tab */}
           <button
             onClick={() => setActiveTab('all')}
@@ -202,7 +202,7 @@ export default function Home() {
 
       {/* 趋势标签 */}
       {trendingTags.length > 0 && (
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
           <span className="text-xs text-[var(--text-muted)] shrink-0 flex items-center gap-1">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
