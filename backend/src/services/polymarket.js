@@ -36,6 +36,26 @@ const dataClient = withRetry(axios.create({
   timeout: 15000,
 }));
 
+// ===== 简易内存缓存（避免重复请求 Polymarket API）=====
+const marketCache = new Map();
+function getCached(key) {
+  const entry = marketCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    marketCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+function setCache(key, data, ttlMs = 60000) {
+  if (marketCache.size > 50) {
+    // 淘汰最早的前 10 条
+    const keys = [...marketCache.keys()].slice(0, 10);
+    keys.forEach(k => marketCache.delete(k));
+  }
+  marketCache.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+
 // ===== Gamma API (市场数据，无需认证) =====
 
 const polymarketService = {
@@ -43,6 +63,13 @@ const polymarketService = {
   async getMarkets(params = {}) {
     const limit = parseInt(params.limit) || 50;
     const hasTag = !!params.tag;
+
+    // 无标签时加缓存（"全部" tab）
+    if (!hasTag) {
+      const cacheKey = `all:${limit}:${params.offset || 0}:${params.order || 'volume24hr'}`;
+      const cached = getCached(cacheKey);
+      if (cached) return cached;
+    }
 
     // Polymarket API bug: tag + order=volume24hr 会导致 tag 过滤失效
     // 因此有标签时先用 createdAt 排序拿到正确数据，再本地按 volume 排
@@ -69,11 +96,19 @@ const polymarketService = {
     // 从市场的事件引用中收集标签
     await this._attachEventTags(markets);
 
-    return {
+    const response = {
       markets: markets.slice(0, limit),
       nextCursor: null,
       hasMore: markets.length > limit,
     };
+
+    // 无标签结果缓存 60s
+    if (!hasTag) {
+      const cacheKey = `all:${limit}:${params.offset || 0}:${params.order || 'volume24hr'}`;
+      setCache(cacheKey, response, 60000);
+    }
+
+    return response;
   },
 
   // 批量获取事件标签并附加到市场
@@ -90,26 +125,45 @@ const polymarketService = {
     }
     if (eventIds.size === 0) return;
 
-    // 批量获取事件（按创建时间倒序取最新事件）
-    try {
-      const allEvents = [];
-      const { data } = await gammaClient.get('/events', {
-        params: {
-          limit: Math.max(500, eventIds.size * 5),
-          order: 'createdAt',
-          ascending: false,
-        },
-      });
-      const eventsArray = Array.isArray(data) ? data : (data?.data || data || []);
-      allEvents.push(...eventsArray);
-
-      // 构建 id → tags 映射
-      const tagMap = new Map();
-      for (const event of allEvents) {
-        if (event.id && event.tags) {
-          tagMap.set(String(event.id), event.tags);
-        }
+    // 检查缓存中是否已有这些事件的标签
+    const missedIds = [];
+    const tagMap = new Map();
+    const eventTagCacheKey = 'eventTags';
+    const eventTagCache = getCached(eventTagCacheKey) || new Map();
+    for (const id of eventIds) {
+      const cachedTags = eventTagCache.get(String(id));
+      if (cachedTags) {
+        tagMap.set(String(id), cachedTags); // 设置过期时间以防缓存过多
+      } else {
+        missedIds.push(id);
       }
+    }
+
+    // 批量获取缺失的事件标签（减少不必要的请求）
+    if (missedIds.length > 0) {
+      try {
+        const fetchLimit = Math.min(200, missedIds.length * 3);
+        const { data } = await gammaClient.get('/events', {
+          params: {
+            limit: fetchLimit,
+            order: 'createdAt',
+            ascending: false,
+          },
+        });
+        const eventsArray = Array.isArray(data) ? data : (data?.data || data || []);
+
+        for (const event of eventsArray) {
+          if (event.id && event.tags) {
+            eventTagCache.set(String(event.id), event.tags);
+            tagMap.set(String(event.id), event.tags);
+          }
+        }
+        // 缓存事件标签 (90s TTL，比市场缓存稍长)
+        setCache(eventTagCacheKey, eventTagCache, 90000);
+      } catch (err) {
+        console.warn('[polymarket] 获取事件标签失败:', err.message);
+      }
+    }
 
       // 附加标签到市场
       for (const m of markets) {
@@ -281,11 +335,18 @@ const polymarketService = {
     const tagId = catConfig?.id;
     const tagSlug = catConfig?.slug || tag;
 
+    // 内存缓存：同一标签 60s 内不重复请求
+    const cacheKey = `tag:${tagSlug}:${limit}:${offset}`;
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+
     try {
       // 方案1：通过 /events 端点获取（tag 过滤可靠）
+      // 减少请求量：前端要 50 条，这里拉 100 条事件即可
+      const fetchLimit = Math.min(300, Math.max(100, (limit + offset) * 2));
       const { data } = await gammaClient.get('/events', {
         params: {
-          limit: Math.max(200, (limit + offset) * 3),
+          limit: fetchLimit,
           offset: 0,
           active: true,
           closed: false,
@@ -334,11 +395,13 @@ const polymarketService = {
       // 如果事件过滤结果为空，回退到 /markets 端点 + 本地标签过滤
       const result = filtered.length > 0 ? filtered : markets;
 
-      return {
+      const response = {
         markets: result.slice(offset, offset + limit),
         nextCursor: null,
         hasMore: result.length > offset + limit,
       };
+      setCache(cacheKey, response, 60000); // 60s TTL
+      return response;
     } catch (err) {
       console.warn(`[polymarket] getMarketsByTag("${tag}") events端点失败，回退到markets端点:`, err.message);
       // 回退：使用原 /markets 方式，但加强本地过滤
@@ -360,11 +423,13 @@ const polymarketService = {
         return tagsLower.includes(tagSlug.toLowerCase());
       });
 
-      return {
+      const fallbackResponse = {
         markets: filtered.slice(0, limit),
         nextCursor: null,
         hasMore: filtered.length > limit,
       };
+      setCache(cacheKey, fallbackResponse, 30000); // 回退路径用更短 TTL
+      return fallbackResponse;
     }
   },
 
