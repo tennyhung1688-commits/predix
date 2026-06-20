@@ -540,6 +540,25 @@ export const translations = {
     'auth.signupFailed': '注册失败，请稍后重试',
     'auth.orContinueWith': '或使用以下方式继续',
     'auth.connectWallet': '使用钱包登录',
+
+    // ========== 市场分类标签 ==========
+    'category.sports': '⚽ 体育',
+    'category.politics': '🏛️ 政治',
+    'category.crypto': '₿ 加密货币',
+    'category.geopolitics': '🌍 地缘政治',
+    'category.economy': '📊 经济',
+    'category.esports': '🎮 电竞',
+    'category.elections': '🗳️ 选举',
+    'category.world': '🌐 全球',
+    'category.culture': '🎬 文化',
+    'category.business': '💼 商业',
+    'category.finance': '💰 金融',
+    'category.commodities': '🛢️ 大宗商品',
+    'category.tennis': '🎾 网球',
+    'category.ufc': '🥊 UFC',
+    'category.mlb': '⚾ MLB',
+    'category.nhl': '🏒 NHL',
+    'category.f1': '🏎️ F1',
   },
 
   en: {
@@ -1079,6 +1098,25 @@ export const translations = {
     'auth.signupFailed': 'Registration failed, please try again',
     'auth.orContinueWith': 'Or continue with',
     'auth.connectWallet': 'Connect with Wallet',
+
+    // ========== Market Category Tags ==========
+    'category.sports': '⚽ Sports',
+    'category.politics': '🏛️ Politics',
+    'category.crypto': '₿ Crypto',
+    'category.geopolitics': '🌍 Geopolitics',
+    'category.economy': '📊 Economy',
+    'category.esports': '🎮 Esports',
+    'category.elections': '🗳️ Elections',
+    'category.world': '🌐 World',
+    'category.culture': '🎬 Culture',
+    'category.business': '💼 Business',
+    'category.finance': '💰 Finance',
+    'category.commodities': '🛢️ Commodities',
+    'category.tennis': '🎾 Tennis',
+    'category.ufc': '🥊 UFC',
+    'category.mlb': '⚾ MLB',
+    'category.nhl': '🏒 NHL',
+    'category.f1': '🏎️ F1',
   },
 } as const;
 

@@ -243,7 +243,7 @@ export default function Home() {
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
               }`}
             >
-              {cat.label}
+              {t(`category.${cat.id}` as any) || cat.label}
             </button>
           ))}
         </div>
