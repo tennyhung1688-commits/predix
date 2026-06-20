@@ -36,8 +36,10 @@ const dataClient = withRetry(axios.create({
   timeout: 15000,
 }));
 
-// ===== 简易内存缓存（避免重复请求 Polymarket API）=====
+// ===== 内存缓存 + 请求去重（避免重复请求 Polymarket API）=====
 const marketCache = new Map();
+const pendingRequests = new Map(); // 飞行中请求去重
+
 function getCached(key) {
   const entry = marketCache.get(key);
   if (!entry) return null;
@@ -49,11 +51,63 @@ function getCached(key) {
 }
 function setCache(key, data, ttlMs = 60000) {
   if (marketCache.size > 50) {
-    // 淘汰最早的前 10 条
     const keys = [...marketCache.keys()].slice(0, 10);
     keys.forEach(k => marketCache.delete(k));
   }
   marketCache.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+
+// 请求去重：并发相同请求只发一次 Polymarket API
+async function dedupedFetch(key, fetchFn) {
+  // 先查缓存
+  const cached = getCached(key);
+  if (cached) return cached;
+
+  // 正在飞行中 → 复用结果
+  if (pendingRequests.has(key)) {
+    console.log(`[polymarket] 复用飞行中请求: ${key}`);
+    return pendingRequests.get(key);
+  }
+
+  // 新请求
+  const promise = fetchFn()
+    .then(data => {
+      setCache(key, data, 60000);
+      return data;
+    })
+    .finally(() => {
+      pendingRequests.delete(key);
+    });
+
+  pendingRequests.set(key, promise);
+  return promise;
+}
+
+// 精简市场字段：只返回前端实际使用的字段，减少响应体积 80%
+function stripMarketFields(m) {
+  if (!m) return m;
+  return {
+    id: m.id,
+    conditionId: m.conditionId,
+    question: m.question || '',
+    question_zh: m.question_zh || '',
+    title: m.title || '',
+    title_zh: m.title_zh || '',
+    eventTitle: m.eventTitle || '',
+    outcomes: m.outcomes || [],
+    outcomes_zh: m.outcomes_zh || [],
+    outcomePrices: m.outcomePrices || [],
+    volume: m.volume || '0',
+    volume24hr: m.volume24hr || m.volume || '0',
+    liquidity: m.liquidity || '0',
+    endDate: m.endDate || '',
+    tags: m.tags || [],
+    clobTokenIds: (m.clobTokenIds ? (Array.isArray(m.clobTokenIds) ? m.clobTokenIds : JSON.parse(m.clobTokenIds)) : []),
+    // 保留这些字段用于部分组件
+    ...(m.marketId ? { marketId: m.marketId } : {}),
+    ...(m.outcomeLabel ? { outcomeLabel: m.outcomeLabel } : {}),
+    ...(m.resolvedAt ? { resolvedAt: m.resolvedAt } : {}),
+  };
 }
 
 // ===== Gamma API (市场数据，无需认证) =====
@@ -64,51 +118,42 @@ const polymarketService = {
     const limit = parseInt(params.limit) || 50;
     const hasTag = !!params.tag;
 
-    // 无标签时加缓存（"全部" tab）
-    if (!hasTag) {
-      const cacheKey = `all:${limit}:${params.offset || 0}:${params.order || 'volume24hr'}`;
-      const cached = getCached(cacheKey);
-      if (cached) return cached;
-    }
+    const cacheKey = `all:${limit}:${params.offset || 0}:${params.order || 'volume24hr'}`;
 
-    // Polymarket API bug: tag + order=volume24hr 会导致 tag 过滤失效
-    // 因此有标签时先用 createdAt 排序拿到正确数据，再本地按 volume 排
-    const apiOrder = hasTag ? 'createdAt' : (params.order || 'volume24hr');
+    return dedupedFetch(cacheKey, async () => {
+      // Polymarket API bug: tag + order=volume24hr 会导致 tag 过滤失效
+      const apiOrder = hasTag ? 'createdAt' : (params.order || 'volume24hr');
 
-    const markets = await this._getDirectMarkets({
-      limit: hasTag ? limit * 3 : limit, // 更多数据以便本地排序
-      offset: params.offset || 0,
-      order: apiOrder,
-      ascending: hasTag ? false : (params.ascending || false),
-      closed: params.closed || false,
-      tag: params.tag || undefined,
-    }).catch(() => []);
+      const markets = await this._getDirectMarkets({
+        limit: hasTag ? limit * 3 : limit,
+        offset: params.offset || 0,
+        order: apiOrder,
+        ascending: hasTag ? false : (params.ascending || false),
+        closed: params.closed || false,
+        tag: params.tag || undefined,
+      }).catch(() => []);
 
-    // 有标签时本地按交易量重新排序
-    if (hasTag) {
-      markets.sort((a, b) => {
-        const va = parseFloat(a.volume24hr || a.volume || 0);
-        const vb = parseFloat(b.volume24hr || b.volume || 0);
-        return vb - va; // descending
-      });
-    }
+      // 有标签时本地按交易量重新排序
+      if (hasTag) {
+        markets.sort((a, b) => {
+          const va = parseFloat(a.volume24hr || a.volume || 0);
+          const vb = parseFloat(b.volume24hr || b.volume || 0);
+          return vb - va;
+        });
+      }
 
-    // 从市场的事件引用中收集标签
-    await this._attachEventTags(markets);
+      // 从市场的事件引用中收集标签
+      await this._attachEventTags(markets);
 
-    const response = {
-      markets: markets.slice(0, limit),
-      nextCursor: null,
-      hasMore: markets.length > limit,
-    };
+      // 精简字段，减少响应体积 ~80%
+      const stripped = markets.slice(0, limit).map(stripMarketFields);
 
-    // 无标签结果缓存 60s
-    if (!hasTag) {
-      const cacheKey = `all:${limit}:${params.offset || 0}:${params.order || 'volume24hr'}`;
-      setCache(cacheKey, response, 60000);
-    }
-
-    return response;
+      return {
+        markets: stripped,
+        nextCursor: null,
+        hasMore: markets.length > limit,
+      };
+    });
   },
 
   // 批量获取事件标签并附加到市场
@@ -335,102 +380,93 @@ const polymarketService = {
     const tagId = catConfig?.id;
     const tagSlug = catConfig?.slug || tag;
 
-    // 内存缓存：同一标签 60s 内不重复请求
     const cacheKey = `tag:${tagSlug}:${limit}:${offset}`;
-    const cached = getCached(cacheKey);
-    if (cached) return cached;
 
-    try {
-      // 方案1：通过 /events 端点获取（tag 过滤可靠）
-      // 减少请求量：前端要 50 条，这里拉 100 条事件即可
-      const fetchLimit = Math.min(300, Math.max(100, (limit + offset) * 2));
-      const { data } = await gammaClient.get('/events', {
-        params: {
-          limit: fetchLimit,
-          offset: 0,
-          active: true,
-          closed: false,
-          order: 'volume24hr',
-          ascending: false,
-          tag_id: tagId || undefined,
-          tag: tagSlug,
-        },
-      });
+    return dedupedFetch(cacheKey, async () => {
+      try {
+        const fetchLimit = Math.min(300, Math.max(100, (limit + offset) * 2));
+        const { data } = await gammaClient.get('/events', {
+          params: {
+            limit: fetchLimit,
+            offset: 0,
+            active: true,
+            closed: false,
+            order: 'volume24hr',
+            ascending: false,
+            tag_id: tagId || undefined,
+            tag: tagSlug,
+          },
+        });
 
-      const events = Array.isArray(data) ? data : (data?.data || data || []);
+        const events = Array.isArray(data) ? data : (data?.data || data || []);
 
-      // 从事件中提取所有市场
-      const markets = [];
-      for (const event of events) {
-        if (event.markets) {
-          for (const m of event.markets) {
-            markets.push({
-              ...m,
-              eventTitle: event.title,
-              eventSlug: event.slug,
-              eventTags: event.tags || [],
-              // 直接从事件继承 tags，不需要等 _attachEventTags
-              tags: event.tags ? event.tags.map(t => t.label || t).filter(Boolean) : [],
-            });
+        // 从事件中提取所有市场
+        const markets = [];
+        for (const event of events) {
+          if (event.markets) {
+            for (const m of event.markets) {
+              markets.push({
+                ...m,
+                eventTitle: event.title,
+                eventSlug: event.slug,
+                eventTags: event.tags || [],
+                tags: event.tags ? event.tags.map(t => t.label || t).filter(Boolean) : [],
+              });
+            }
           }
         }
+
+        // 按交易量降序排序
+        markets.sort((a, b) => {
+          const va = parseFloat(a.volume24hr || a.volume || 0);
+          const vb = parseFloat(b.volume24hr || b.volume || 0);
+          return vb - va;
+        });
+
+        // 本地兜底过滤
+        const filtered = markets.filter(m => {
+          if (!m.tags || m.tags.length === 0) return false;
+          const tagsLower = m.tags.map(t => typeof t === 'string' ? t.toLowerCase() : String(t).toLowerCase());
+          return tagsLower.includes(tagSlug.toLowerCase())
+            || tagsLower.some(t => tagSlug.toLowerCase().includes(t) || t.includes(tagSlug.toLowerCase()));
+        });
+
+        const result = filtered.length > 0 ? filtered : markets;
+        const stripped = result.slice(offset, offset + limit).map(stripMarketFields);
+
+        return {
+          markets: stripped,
+          nextCursor: null,
+          hasMore: result.length > offset + limit,
+        };
+      } catch (err) {
+        console.warn(`[polymarket] getMarketsByTag("${tag}") 回退到markets端点:`, err.message);
+        const markets = await this._getDirectMarkets({
+          limit: limit * 3,
+          offset: offset || 0,
+          order: 'createdAt',
+          ascending: false,
+          closed: false,
+          tag: tagSlug,
+        }).catch(() => []);
+
+        await this._attachEventTags(markets);
+
+        const filtered = markets.filter(m => {
+          if (!m.tags || m.tags.length === 0) return false;
+          const tagsLower = m.tags.map(t => typeof t === 'string' ? t.toLowerCase() : String(t).toLowerCase());
+          return tagsLower.includes(tagSlug.toLowerCase());
+        });
+
+        const stripped = filtered.slice(0, limit).map(stripMarketFields);
+
+        return {
+          markets: stripped,
+          nextCursor: null,
+          hasMore: filtered.length > limit,
+        };
       }
-
-      // 按交易量降序排序
-      markets.sort((a, b) => {
-        const va = parseFloat(a.volume24hr || a.volume || 0);
-        const vb = parseFloat(b.volume24hr || b.volume || 0);
-        return vb - va;
-      });
-
-      // 本地兜底过滤：确保市场 tags 包含目标标签
-      const filtered = markets.filter(m => {
-        if (!m.tags || m.tags.length === 0) return false;
-        const tagsLower = m.tags.map(t => typeof t === 'string' ? t.toLowerCase() : String(t).toLowerCase());
-        // 检查 slug 或 label 匹配
-        return tagsLower.includes(tagSlug.toLowerCase())
-          || tagsLower.some(t => tagSlug.toLowerCase().includes(t) || t.includes(tagSlug.toLowerCase()));
-      });
-
-      // 如果事件过滤结果为空，回退到 /markets 端点 + 本地标签过滤
-      const result = filtered.length > 0 ? filtered : markets;
-
-      const response = {
-        markets: result.slice(offset, offset + limit),
-        nextCursor: null,
-        hasMore: result.length > offset + limit,
-      };
-      setCache(cacheKey, response, 60000); // 60s TTL
-      return response;
-    } catch (err) {
-      console.warn(`[polymarket] getMarketsByTag("${tag}") events端点失败，回退到markets端点:`, err.message);
-      // 回退：使用原 /markets 方式，但加强本地过滤
-      const markets = await this._getDirectMarkets({
-        limit: limit * 3,
-        offset: offset || 0,
-        order: 'createdAt',
-        ascending: false,
-        closed: false,
-        tag: tagSlug,
-      }).catch(() => []);
-
-      // 附加事件标签后严格过滤
-      await this._attachEventTags(markets);
-
-      const filtered = markets.filter(m => {
-        if (!m.tags || m.tags.length === 0) return false;
-        const tagsLower = m.tags.map(t => typeof t === 'string' ? t.toLowerCase() : String(t).toLowerCase());
-        return tagsLower.includes(tagSlug.toLowerCase());
-      });
-
-      const fallbackResponse = {
-        markets: filtered.slice(0, limit),
-        nextCursor: null,
-        hasMore: filtered.length > limit,
-      };
-      setCache(cacheKey, fallbackResponse, 30000); // 回退路径用更短 TTL
-      return fallbackResponse;
-    }
+    });
   },
 
   // 获取世界杯相关市场（获取体育事件后本地过滤）

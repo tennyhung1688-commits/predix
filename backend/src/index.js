@@ -100,7 +100,7 @@ app.use(pinoHttp({
 // ---- 业务中间件 ----
 
 app.use(cors({ origin: config.corsOrigin, credentials: true }));
-app.use(compression()); // gzip/brotli 压缩响应，减少传输时间
+app.use(compression({ threshold: 0, level: 6 })); // 确保所有响应都被 gzip 压缩
 app.use(express.json({ limit: '1mb' })); // 限制请求体大小，防止大 payload 攻击
 
 // 全局速率限制（所有 API 路由）
