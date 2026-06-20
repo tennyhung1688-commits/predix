@@ -274,7 +274,7 @@ router.post('/order', requireAuth,
           data: { status: 'filled', polymarketOrderId, updatedAt: new Date() },
         }),
         prisma.user.update({
-          where: { id: user.id },
+          where: { id: user.id, balance: { gte: userCost + user.lockedBalance } },
           data: {
             balance: { decrement: userCost },
             lockedBalance: { decrement: userCost },

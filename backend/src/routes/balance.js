@@ -1,6 +1,7 @@
 const express = require('express');
 const balanceService = require('../services/balance');
 const config = require('../config');
+const prisma = require('../lib/prisma');
 const { requireAuth } = require('../middleware/auth');
 const { withdrawLimiter } = require('../middleware/rateLimiter');
 const { depositRules, withdrawRules, handleValidation } = require('../middleware/validate');
@@ -119,7 +120,15 @@ router.post('/balance/deposit/verify', requireAuth, async (req, res) => {
       return res.json({ success: false, error: '未检测到 USDC 转账' });
     }
 
-    // 5. 已确认到账，自动充值
+    // 5. 防重复：检查 txHash 是否已处理
+    const existing = await prisma.transaction.findFirst({
+      where: { desc: { contains: txHash } },
+    });
+    if (existing) {
+      return res.json({ success: false, error: '该交易已确认到账，不可重复提交' });
+    }
+
+    // 6. 已确认到账，自动充值
     const deposit = await balanceService.deposit(req.user.walletAddress, txHash, amount);
 
     res.json({
