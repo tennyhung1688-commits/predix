@@ -39,33 +39,59 @@ const dataClient = withRetry(axios.create({
 // ===== Gamma API (市场数据，无需认证) =====
 
 const polymarketService = {
-  // 获取市场列表
-  // Gamma API 返回 { data: Market[], next_cursor: string|null }
-  // 这里做归一化，返回 { markets, nextCursor, hasMore }
+  // 获取市场列表（混合事件端点获取标签）
   async getMarkets(params = {}) {
     const limit = parseInt(params.limit) || 50;
-    const { data } = await gammaClient.get('/markets', {
-      params: {
-        limit,
-        offset: params.offset || 0,
-        order: params.order || 'volume24hr',
-        ascending: params.ascending || false,
-        closed: params.closed || false,
-        tag: params.tag || undefined,
-        next_cursor: params.nextCursor || undefined,
-        ...params,
-      },
-    });
 
-    // 归一化：Gamma API 返回 { data: [...], next_cursor }
-    // 但也兼容直接返回数组的情况
-    const marketsArray = Array.isArray(data) ? data : (data?.data || data || []);
-    const nextCursor = data?.next_cursor || null;
+    // 主源：events 端点（市场带完整事件标签）
+    const events = await this.getEvents({
+      limit: Math.ceil(limit / 2),
+      offset: params.offset || 0,
+      active: true,
+      closed: false,
+      order: params.order || 'volume24hr',
+      ascending: params.ascending || false,
+      tag: params.tag || undefined,
+      ...params,
+    }).catch(() => ({ markets: [] }));
+
+    const eventArray = Array.isArray(events.markets) ? events.markets : [];
+
+    // 从事件中提取市场并附加事件标签
+    const allMarkets = [];
+    const seen = new Set();
+    for (const event of eventArray) {
+      const eventTags = event.tags || [];
+      if (event.markets) {
+        for (const m of event.markets) {
+          if (!seen.has(m.id)) {
+            seen.add(m.id);
+            allMarkets.push({ ...m, tags: eventTags }); // 继承事件标签
+          }
+        }
+      }
+    }
+
+    // 补充：直接市场端点（极速 5 分钟等独立市场）
+    if (!params.closed) {
+      const direct = await this._getDirectMarkets({
+        limit: Math.ceil(limit / 2),
+        order: 'createdAt',
+        ascending: false,
+        tag: params.tag || undefined,
+      }).catch(() => []);
+      for (const m of direct) {
+        if (!seen.has(m.id)) {
+          seen.add(m.id);
+          allMarkets.push(m);
+        }
+      }
+    }
 
     return {
-      markets: marketsArray,
-      nextCursor,
-      hasMore: nextCursor != null && marketsArray.length >= limit,
+      markets: allMarkets.slice(0, limit),
+      nextCursor: null,
+      hasMore: allMarkets.length > limit,
     };
   },
 
@@ -73,6 +99,23 @@ const polymarketService = {
   async getMarket(marketId) {
     const { data } = await gammaClient.get(`/markets/${marketId}`);
     return data;
+  },
+
+  // 直接查询市场端点（内部辅助，返回原样数组）
+  async _getDirectMarkets(params = {}) {
+    const limit = parseInt(params.limit) || 50;
+    const { data } = await gammaClient.get('/markets', {
+      params: {
+        limit,
+        offset: params.offset || 0,
+        order: params.order || 'createdAt',
+        ascending: params.ascending !== false,
+        closed: params.closed || false,
+        tag: params.tag || undefined,
+        ...params,
+      },
+    });
+    return Array.isArray(data) ? data : (data?.data || data || []);
   },
 
   // 获取事件列表
@@ -192,66 +235,9 @@ const polymarketService = {
   },
 
   // 按标签获取市场（通过 events 端点，events 有完整的 tags）
+  // 按标签获取市场（委托给 getMarkets 统一处理）
   async getMarketsByTag(tag, params = {}) {
-    const limit = parseInt(params.limit) || 50;
-    const cat = this.CATEGORIES[tag];
-    const tagId = cat ? cat.id : tag;
-    const tagSlug = cat ? cat.slug : tag;
-    
-    // 同时拉取：事件端点（大交易量市场）+ 直接市场端点（含 5 分钟极速市场）
-    const [eventsResult, directResult] = await Promise.all([
-      this.getEvents({
-        limit: Math.ceil(limit / 3),
-        offset: params.offset || 0,
-        active: true,
-        closed: false,
-        order: 'volume24hr',
-        ascending: false,
-        tag_id: tagId,
-        tag: tagSlug,
-      }).catch(() => ({ markets: [] })),
-      this.getMarkets({
-        limit: Math.ceil(limit / 2),
-        offset: 0,
-        closed: false,
-        order: 'createdAt',
-        ascending: false,
-        tag: tagSlug,
-      }).catch(() => ({ markets: [] })),
-    ]);
-    
-    // 合并去重
-    const seen = new Set();
-    const allMarkets = [];
-    
-    // 事件中的市场（有完整事件信息）
-    const events = eventsResult.markets || eventsResult;
-    const eventArray = Array.isArray(events) ? events : [];
-    for (const event of eventArray) {
-      if (event.markets) {
-        for (const m of event.markets) {
-          if (!seen.has(m.id)) {
-            seen.add(m.id);
-            allMarkets.push(m);
-          }
-        }
-      }
-    }
-    
-    // 直接 API 的市场（独立的极速市场等）
-    const directs = directResult.markets || [];
-    for (const m of directs) {
-      if (!seen.has(m.id)) {
-        seen.add(m.id);
-        allMarkets.push(m);
-      }
-    }
-    
-    return {
-      markets: allMarkets.slice(0, limit),
-      nextCursor: null,
-      hasMore: allMarkets.length > limit,
-    };
+    return this.getMarkets({ ...params, tag });
   },
 
   // 获取世界杯相关市场（获取体育事件后本地过滤）
