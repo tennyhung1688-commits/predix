@@ -253,6 +253,7 @@ export const translations = {
     'market.noTrades': '暂无交易记录',
     'market.startTrading': '开始交易',
     'market.breadcrumb': '市场',
+    'market.endedDesc': '该预测市场已结束，无法继续交易。',
 
     // 通用
     'general.general': '综合',
@@ -863,6 +864,7 @@ export const translations = {
     'market.noTrades': 'No trade records',
     'market.startTrading': 'Start Trading',
     'market.breadcrumb': 'Markets',
+    'market.endedDesc': 'This prediction market has ended. Trading is no longer available.',
 
     // General
     'general.general': 'General',

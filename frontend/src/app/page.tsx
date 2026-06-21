@@ -127,6 +127,9 @@ export default function Home() {
   const filteredMarkets = useMemo(() => {
     let result = activeTab === 'all' ? markets : (categoryMarkets[activeTab] || []);
 
+    // 过滤掉已结束的盘口
+    result = result.filter((m: any) => !m.closed);
+
     if (popularOnly) {
       result = result.filter((m: any) =>
         parseFloat(m.volume24hr || m.volume || '0') >= POPULAR_VOLUME_THRESHOLD

@@ -202,25 +202,43 @@ export default function MarketDetailPage() {
           </div>
         </div>
 
-        {/* 交易面板 */}
+        {/* 交易面板 / 已结束状态 */}
         <div className="hidden lg:block w-80 shrink-0">
           <div className="sticky top-20">
-            <TradingPanel market={market} />
+            {market.closed ? (
+              <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-6 text-center">
+                <div className="text-4xl mb-3">🏁</div>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                  {t('time.ended')}
+                </h3>
+                <p className="text-sm text-[var(--text-muted)]">
+                  {t('market.endedDesc') || '该预测市场已结束，无法继续交易。'}
+                </p>
+              </div>
+            ) : (
+              <TradingPanel market={market} />
+            )}
           </div>
         </div>
       </div>
 
-      {/* 移动端底部交易按钮 */}
+      {/* 移动端：已结束显示状态，未结束显示交易按钮 */}
       <div className="lg:hidden fixed bottom-4 left-4 right-4 z-40">
-        <Link
-          href={`/?market=${id}`}
-          className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-medium flex items-center justify-center gap-2 shadow-lg"
-        >
-          {t('market.startTrading')}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </Link>
+        {market.closed ? (
+          <div className="w-full py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] text-center text-sm text-[var(--text-muted)]">
+            {t('time.ended')}
+          </div>
+        ) : (
+          <Link
+            href={`/?market=${id}`}
+            className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-medium flex items-center justify-center gap-2 shadow-lg"
+          >
+            {t('market.startTrading')}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -98,6 +98,15 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
         {/* Top fade for badges */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
 
+        {/* 已结束遮罩 */}
+        {market.closed && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 backdrop-blur-[2px]">
+            <span className="px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm text-white/90 text-sm font-semibold tracking-wide border border-white/20">
+              {t('time.ended')}
+            </span>
+          </div>
+        )}
+
         {/* Category badge */}
         {category && (
           <div className="absolute top-3 left-3 z-10">

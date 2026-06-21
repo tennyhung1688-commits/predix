@@ -101,6 +101,7 @@ function stripMarketFields(m) {
     volume24hr: m.volume24hr || m.volume || '0',
     liquidity: m.liquidity || '0',
     endDate: m.endDate || '',
+    closed: m.closed === true, // 从 Gamma API 读取 closed 字段
     tags: m.tags || [],
     clobTokenIds: (m.clobTokenIds ? (Array.isArray(m.clobTokenIds) ? m.clobTokenIds : JSON.parse(m.clobTokenIds)) : []),
     // 保留这些字段用于部分组件
