@@ -43,6 +43,7 @@ module.exports = {
     economy:      0.035,  // 3.5% - 2.5% cost = 1.0% profit
     culture:      0.035,
     crypto:       0.045,  // 4.5% - 3.5% cost = 1.0% profit
+    weather:      0.035,  // 3.5% - 2.5% cost = 1.0% profit
     default:      0.04,   // 4.0% 兜底
   },
   // Polymarket taker 费率（按市场类型，p=0.5 时的有效费率）
@@ -55,6 +56,7 @@ module.exports = {
     economy:      0.025,
     culture:      0.025,
     crypto:       0.035,
+    weather:      0.025,
     default:      0.035,
   },
   // 根据 PrediX 费率反向匹配 Polymarket 成本
@@ -104,6 +106,10 @@ module.exports = {
     // 文化/娱乐
     if (/culture|music|movie|film|tv|award|oscar|grammy|celebrity|entertainment/i.test(text))
       return this.categoryFeeRates.culture;
+
+    // 天气/科学
+    if (/weather|temperat|precipitat|hurricane|tornado|earthquake|volcano|tsunami|climate/i.test(text))
+      return this.categoryFeeRates.weather;
 
     return this.categoryFeeRates.default;
   },

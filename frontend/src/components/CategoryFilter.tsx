@@ -30,6 +30,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   finance: '💼',
   gaming: '🎮',
   governance: '⚖️',
+  weather: '🌤️',
 };
 
 function getCategoryIcon(cat: Category): string {

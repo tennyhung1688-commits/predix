@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useMarkets } from '@/hooks/useMarkets';
 import { MarketCard } from '@/components/MarketCard';
 import { HeroSection } from '@/components/HeroSection';
@@ -19,8 +20,10 @@ type SortMode = 'volume' | 'latest' | 'trending';
 
 export default function Home() {
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { markets, loading, loadingMore, error, hasMore, isRefreshing, loadMore, pendingScrollRestore } = useMarkets();
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('volume');
   const [trendingTags, setTrendingTags] = useState<{ id: number; label: string }[]>([]);
@@ -29,6 +32,29 @@ export default function Home() {
   const [popularOnly, setPopularOnly] = useState(false);
   const [speedOnly, setSpeedOnly] = useState(false);
   const POPULAR_VOLUME_THRESHOLD = 0;
+
+  // Sync activeTab with URL ?tab= param
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === 'all') {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : '/', { scroll: false });
+  };
+
+  // When Navbar link changes URL (e.g. /?tab=politics), sync activeTab
+  const tabParam = searchParams.get('tab');
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    } else {
+      setActiveTab('all');
+    }
+  }, [tabParam]);
 
   const isSpeedMarket = (m: any) => {
     const q = (m.question || m.title || '').toLowerCase();
@@ -264,7 +290,7 @@ export default function Home() {
         <CategoryFilter
           categories={categories}
           activeTab={activeTab}
-          onSelect={setActiveTab}
+          onSelect={handleTabChange}
         />
       </div>
 

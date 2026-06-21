@@ -102,6 +102,26 @@ export const translations = {
     'trade.marketAmount': '花费金额 (USDC)',
     'trade.marketFeeHint': '市价单包含 {rate} 价差',
 
+    // ====== 重设计交易面板 ======
+    'trade.buyTab': '买入',
+    'trade.sellTab': '卖出',
+    'trade.outcome': '结果',
+    'trade.pricePerShare': '每股价格',
+    'trade.shareAmount': '份额',
+    'trade.expiration': '过期',
+    'trade.total': '总计',
+    'trade.potentialPayout': '预估回报',
+    'trade.avgPrice': '均价',
+    'trade.placeBuyOrder': '下买单',
+    'trade.placeSellOrder': '下卖单',
+    'trade.balance': '余额',
+    'trade.yes': '是',
+    'trade.no': '否',
+    'trade.expiryGTC': '取消前有效',
+    'trade.expiry24h': '24 小时',
+    'trade.expiry1h': '1 小时',
+    'trade.expiry15m': '15 分钟',
+
     // 钱包弹窗
     'wallet.title': '连接钱包',
     'wallet.metamask': 'MetaMask',
@@ -583,6 +603,7 @@ export const translations = {
     'category.mlb': '⚾ MLB',
     'category.nhl': '🏒 NHL',
     'category.f1': '🏎️ F1',
+    'category.weather': '🌤️ 天气',
   },
 
   en: {
@@ -683,6 +704,26 @@ export const translations = {
     'trade.marketOrderDesc': 'Execute immediately at the best available price',
     'trade.marketAmount': 'Spend Amount (USDC)',
     'trade.marketFeeHint': 'Market orders include {rate} spread',
+
+    // ====== Redesigned Trading Panel ======
+    'trade.buyTab': 'Buy',
+    'trade.sellTab': 'Sell',
+    'trade.outcome': 'Outcome',
+    'trade.pricePerShare': 'Price per share',
+    'trade.shareAmount': 'Share Amount',
+    'trade.expiration': 'Expiration',
+    'trade.total': 'Total',
+    'trade.potentialPayout': 'Potential Payout',
+    'trade.avgPrice': 'Avg Price',
+    'trade.placeBuyOrder': 'Place Buy Order',
+    'trade.placeSellOrder': 'Place Sell Order',
+    'trade.balance': 'Balance',
+    'trade.yes': 'Yes',
+    'trade.no': 'No',
+    'trade.expiryGTC': 'Good Til Cancelled',
+    'trade.expiry24h': '24 Hours',
+    'trade.expiry1h': '1 Hour',
+    'trade.expiry15m': '15 Minutes',
 
     // Wallet Modal
     'wallet.title': 'Connect Wallet',
@@ -1165,6 +1206,7 @@ export const translations = {
     'category.mlb': '⚾ MLB',
     'category.nhl': '🏒 NHL',
     'category.f1': '🏎️ F1',
+    'category.weather': '🌤️ Weather',
   },
 } as const;
 

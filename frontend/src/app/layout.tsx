@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { DM_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
@@ -29,7 +30,7 @@ export const viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({
+function RootLayoutInner({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -50,5 +51,25 @@ export default function RootLayout({
         </ErrorBoundary>
       </body>
     </html>
+  );
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <Suspense fallback={
+      <html lang="zh-CN" className={`${dmSans.variable} ${spaceGrotesk.variable} h-full antialiased`} style={{ colorScheme: 'dark' }}>
+        <body className="min-h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="h-8 w-8 border-2 border-[var(--accent-blue)] border-t-transparent rounded-full animate-spin" />
+          </div>
+        </body>
+      </html>
+    }>
+      <RootLayoutInner>{children}</RootLayoutInner>
+    </Suspense>
   );
 }

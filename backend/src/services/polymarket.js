@@ -362,6 +362,7 @@ const polymarketService = {
     mlb:         { id: 100381, label: '⚾ MLB',         slug: 'mlb' },
     nhl:         { id: 899,   label: '🏒 NHL',         slug: 'nhl' },
     f1:          { id: 435,   label: '🏎️ F1',          slug: 'formula1' },
+    weather:     { id: 84,    label: '🌤️ 天气',       slug: 'weather' },
   },
 
   // 按标签获取市场 — 通过 /events 端点（tag 过滤可靠）
