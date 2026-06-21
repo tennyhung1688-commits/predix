@@ -81,6 +81,12 @@ export function Navbar() {
                 {t('nav.crypto')}
               </Link>
               <Link
+                href="/?tab=weather"
+                className="px-3 py-1.5 rounded-md text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all duration-200"
+              >
+                🌤️ {t('nav.weather')}
+              </Link>
+              <Link
                 href="/dashboard"
                 className="px-3 py-1.5 rounded-md text-sm font-semibold text-[var(--accent-amber)] hover:text-[var(--accent-amber)] hover:bg-[var(--accent-amber)]/10 transition-all duration-200 flex items-center gap-1"
               >

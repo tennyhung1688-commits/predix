@@ -348,6 +348,7 @@ const polymarketService = {
     sports:      { id: 1,     label: '⚽ 体育',        slug: 'sports' },
     politics:    { id: 2,     label: '🏛️ 政治',       slug: 'politics' },
     crypto:      { id: 21,    label: '₿ 加密货币',     slug: 'crypto' },
+    weather:     { id: 84,    label: '🌤️ 天气',       slug: 'weather' },
     geopolitics: { id: 100265, label: '🌍 地缘政治',   slug: 'geopolitics' },
     economy:     { id: 100328, label: '📊 经济',       slug: 'economy' },
     esports:     { id: 64,    label: '🎮 电竞',        slug: 'esports' },
@@ -362,7 +363,6 @@ const polymarketService = {
     mlb:         { id: 100381, label: '⚾ MLB',         slug: 'mlb' },
     nhl:         { id: 899,   label: '🏒 NHL',         slug: 'nhl' },
     f1:          { id: 435,   label: '🏎️ F1',          slug: 'formula1' },
-    weather:     { id: 84,    label: '🌤️ 天气',       slug: 'weather' },
   },
 
   // 按标签获取市场 — 通过 /events 端点（tag 过滤可靠）
