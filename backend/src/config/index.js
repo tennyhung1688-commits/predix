@@ -137,4 +137,11 @@ module.exports = {
     depositAddress: process.env.PLATFORM_WALLET_ADDRESS || '',
   },
   polygonscanApiKey: process.env.POLYGONSCAN_API_KEY || '',
+
+  // X (Twitter) OAuth 2.0
+  twitter: {
+    clientId: process.env.TWITTER_CLIENT_ID || '',
+    clientSecret: process.env.TWITTER_CLIENT_SECRET || '',
+    callbackUrl: process.env.TWITTER_CALLBACK_URL || 'http://localhost:3001/api/auth/twitter/callback',
+  },
 };

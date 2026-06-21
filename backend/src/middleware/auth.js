@@ -12,17 +12,25 @@ async function extractUser(req, res, next) {
   if (token) {
     try {
       const decoded = jwt.verify(token, config.jwtSecret);
-      const user = await prisma.user.findUnique({
-        where: { walletAddress: decoded.walletAddress },
-      });
-      if (user) {
-        req.user = {
-          id: user.id,
-          walletAddress: user.walletAddress,
-          role: user.role,
-          balance: user.balance,
-          lockedBalance: user.lockedBalance,
-        };
+      // 支持 wallet / email / twitter 等认证方式
+      const where = decoded.walletAddress
+        ? { walletAddress: decoded.walletAddress }
+        : decoded.email
+        ? { email: decoded.email }
+        : decoded.id
+        ? { id: decoded.id }
+        : null;
+      if (where) {
+        const user = await prisma.user.findUnique({ where });
+        if (user) {
+          req.user = {
+            id: user.id,
+            walletAddress: user.walletAddress,
+            role: user.role,
+            balance: user.balance,
+            lockedBalance: user.lockedBalance,
+          };
+        }
       }
     } catch {
       // token 无效，继续但不设置 user
@@ -33,8 +41,8 @@ async function extractUser(req, res, next) {
 
 // 要求已认证的中间件
 function requireAuth(req, res, next) {
-  if (!req.user || !req.user.walletAddress) {
-    return res.status(401).json({ success: false, error: '请先连接钱包' });
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ success: false, error: '请先登录' });
   }
   next();
 }

@@ -22,6 +22,11 @@ model User {
   referralCode    String?  @unique        // 推荐码
   referredBy      String?                 // 邀请人 ID
   referralEarnings Float   @default(0)    // 累计推荐收益
+  // OAuth
+  twitterId       String?  @unique        // X (Twitter) 用户 ID
+  twitterUsername String?                 // X 用户名 (@handle)
+  avatarUrl       String?                 // 头像 URL
+  provider        String?                 // 认证方式: "wallet" | "email" | "twitter"
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

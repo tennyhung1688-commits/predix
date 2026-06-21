@@ -81,3 +81,11 @@ services:
       # ---- POLY_1271 存款钱包地址 ----
       - key: PLATFORM_FUNDER_ADDRESS
         value: "0xb9d36bb4d8effa704cbfdd4be0d204cb404a3062"
+
+      # ---- X (Twitter) OAuth 2.0 ----
+      - key: TWITTER_CLIENT_ID
+        sync: false
+      - key: TWITTER_CLIENT_SECRET
+        sync: false
+      - key: TWITTER_CALLBACK_URL
+        value: https://predix.eu.cc/api/auth/twitter/callback

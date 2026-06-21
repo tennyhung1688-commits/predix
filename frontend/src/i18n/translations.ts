@@ -584,6 +584,7 @@ export const translations = {
     'auth.loginFailed': '登录失败，请检查邮箱和密码',
     'auth.signupFailed': '注册失败，请稍后重试',
     'auth.orContinueWith': '或使用以下方式继续',
+    'auth.continueWithX': '使用 X 登录',
     'auth.connectWallet': '使用钱包登录',
 
     // ========== 市场分类标签 ==========
@@ -1188,6 +1189,7 @@ export const translations = {
     'auth.loginFailed': 'Login failed, please check your email and password',
     'auth.signupFailed': 'Registration failed, please try again',
     'auth.orContinueWith': 'Or continue with',
+    'auth.continueWithX': 'Continue with X',
     'auth.connectWallet': 'Connect with Wallet',
 
     // ========== Market Category Tags ==========

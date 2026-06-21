@@ -178,12 +178,15 @@ router.get('/me', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, config.jwtSecret);
-    // 兼容钱包用户和邮箱用户
-    const where = {};
-    if (decoded.walletAddress) where.walletAddress = decoded.walletAddress;
-    else if (decoded.email) where.email = decoded.email;
-    else if (decoded.id) where.id = decoded.id;
-    else return res.status(401).json({ success: false, error: 'Token 无效' });
+    // 兼容 wallet / email / twitter 等方式
+    const where = decoded.walletAddress
+      ? { walletAddress: decoded.walletAddress }
+      : decoded.email
+      ? { email: decoded.email }
+      : decoded.id
+      ? { id: decoded.id }
+      : null;
+    if (!where) return res.status(401).json({ success: false, error: 'Token 无效' });
 
     const user = await prisma.user.findUnique({ where });
 
@@ -197,6 +200,160 @@ router.get('/me', async (req, res) => {
     });
   } catch (err) {
     res.status(401).json({ success: false, error: 'Token 无效' });
+  }
+});
+
+// ────────────────────────────────────────
+// X (Twitter) OAuth 2.0
+// ────────────────────────────────────────
+
+const TWITTER_AUTH_URL = 'https://x.com/i/oauth2/authorize';
+const TWITTER_TOKEN_URL = 'https://api.x.com/2/oauth2/token';
+const TWITTER_USER_URL = 'https://api.x.com/2/users/me';
+
+/** 生成随机状态值（防 CSRF） */
+function generateState() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+/** 存储 OAuth state（内存 Map，生产可用 Redis） */
+const oauthStates = new Map();
+
+// 发起 Twitter 授权
+router.get('/twitter', (req, res) => {
+  if (!config.twitter.clientId) {
+    return res.status(500).json({ success: false, error: 'Twitter OAuth 未配置' });
+  }
+
+  const state = generateState();
+  const redirectTo = req.query.redirect || '/';
+
+  oauthStates.set(state, { redirectTo, createdAt: Date.now() });
+
+  // 过期清理（5 分钟）
+  setTimeout(() => oauthStates.delete(state), 5 * 60 * 1000);
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: config.twitter.clientId,
+    redirect_uri: config.twitter.callbackUrl,
+    scope: 'users.read',
+    state,
+    code_challenge: 'challenge', // PKCE plain mode for simplicity
+    code_challenge_method: 'plain',
+  });
+
+  res.redirect(`${TWITTER_AUTH_URL}?${params.toString()}`);
+});
+
+// Twitter 回调处理
+router.get('/twitter/callback', async (req, res) => {
+  try {
+    const { code, state, error: oauthError, error_description } = req.query;
+
+    const frontendUrl = config.corsOrigin || 'http://localhost:3000';
+
+    if (oauthError) {
+      logger.warn({ oauthError, error_description }, 'Twitter OAuth 错误');
+      return res.redirect(`${frontendUrl}/auth?error=${encodeURIComponent(error_description || oauthError)}`);
+    }
+
+    const stored = oauthStates.get(state);
+    oauthStates.delete(state);
+
+    if (!stored) {
+      return res.status(400).json({ success: false, error: 'OAuth state 无效或已过期' });
+    }
+
+    // 交换 code 获取 access token
+    const tokenParams = new URLSearchParams({
+      code,
+      grant_type: 'authorization_code',
+      client_id: config.twitter.clientId,
+      client_secret: config.twitter.clientSecret,
+      redirect_uri: config.twitter.callbackUrl,
+      code_verifier: 'challenge',
+    });
+
+    const tokenRes = await fetch(TWITTER_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: tokenParams.toString(),
+    });
+
+    if (!tokenRes.ok) {
+      const err = await tokenRes.text();
+      logger.error({ status: tokenRes.status, body: err }, 'Twitter token exchange 失败');
+      return res.redirect(`${frontendUrl}/auth?error=token_exchange_failed`);
+    }
+
+    const tokenData = await tokenRes.json();
+    const { access_token } = tokenData;
+
+    // 获取 Twitter 用户信息
+    const userRes = await fetch(`${TWITTER_USER_URL}?user.fields=profile_image_url,username`, {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+
+    if (!userRes.ok) {
+      return res.redirect(`${frontendUrl}/auth?error=fetch_user_failed`);
+    }
+
+    const { data: twitterUser } = await userRes.json();
+    const twitterId = twitterUser.id;
+    const twitterUsername = twitterUser.username;
+    const avatarUrl = twitterUser.profile_image_url?.replace('_normal', '_400x400') || null;
+
+    // 查找或创建用户
+    let user = await prisma.user.findUnique({ where: { twitterId } });
+
+    if (!user) {
+      // 创建新用户
+      let referralCode = null;
+      for (let i = 0; i < 5; i++) {
+        try {
+          referralCode = generateReferralCode();
+          user = await prisma.user.create({
+            data: {
+              twitterId,
+              twitterUsername,
+              username: twitterUsername,
+              avatarUrl,
+              provider: 'twitter',
+              referralCode,
+            },
+          });
+          break;
+        } catch (err) {
+          if (err.code !== 'P2002') throw err;
+          if (i === 4) throw new Error('推荐码生成冲突，请重试');
+        }
+      }
+      logger.info({ userId: user.id, twitterUsername }, 'Twitter 新用户注册成功');
+    } else {
+      // 更新用户资料
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          twitterUsername,
+          username: user.username || twitterUsername,
+          ...(avatarUrl ? { avatarUrl } : {}),
+        },
+      });
+      logger.info({ userId: user.id, twitterUsername }, 'Twitter 用户登录成功');
+    }
+
+    // 签发 JWT
+    const token = signToken(user);
+
+    // 重定向到前端，携带 token
+    const redirectTo = stored.redirectTo || '/';
+    const callbackParams = new URLSearchParams({ token, redirect: redirectTo });
+    res.redirect(`${frontendUrl}/auth/twitter-callback?${callbackParams.toString()}`);
+  } catch (err) {
+    logger.error({ message: err.message, stack: err.stack }, 'Twitter callback 错误');
+    const frontendUrl = config.corsOrigin || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/auth?error=oauth_error`);
   }
 });
 
