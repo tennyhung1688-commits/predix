@@ -41,12 +41,26 @@ import type {
   AuthResponse,
 } from '@/types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+let _apiBase = '';
+const getApiBase = () => {
+  if (_apiBase) return _apiBase;
+  if (typeof window !== 'undefined') {
+    if (!window.location.hostname.includes('localhost')) {
+      _apiBase = 'https://predix-backend-0faz.onrender.com/api';
+    } else {
+      _apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    }
+  } else {
+    // SSR: use production by default
+    _apiBase = 'https://predix-backend-0faz.onrender.com/api';
+  }
+  return _apiBase;
+};
 
 export async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  const res = await fetch(`${getApiBase()}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
