@@ -603,7 +603,7 @@ export const translations = {
     'category.mlb': '⚾ MLB',
     'category.nhl': '🏒 NHL',
     'category.f1': '🏎️ F1',
-    'category.weather': '🌤️ 天气',
+    'category.weather': '天气',
   },
 
   en: {
@@ -1206,7 +1206,7 @@ export const translations = {
     'category.mlb': '⚾ MLB',
     'category.nhl': '🏒 NHL',
     'category.f1': '🏎️ F1',
-    'category.weather': '🌤️ Weather',
+    'category.weather': 'Weather',
   },
 } as const;
 
