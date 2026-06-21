@@ -33,7 +33,6 @@ function getDefaultLocale(): Locale {
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(getDefaultLocale);
-  const [mounted, setMounted] = useState(false);
 
   // 客户端挂载后，从 localStorage 恢复用户之前的语言选择
   useEffect(() => {
@@ -41,7 +40,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     if (stored === 'en' || stored === 'zh') {
       setLocaleState(stored);
     }
-    setMounted(true);
   }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
