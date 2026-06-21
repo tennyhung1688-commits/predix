@@ -84,8 +84,8 @@ services:
 
       # ---- X (Twitter) OAuth 2.0 ----
       - key: TWITTER_CLIENT_ID
-        sync: false
+        value: "bTR1X21hbFJaUlpJTWlOd0N3emk6MTpjaQ"
       - key: TWITTER_CLIENT_SECRET
-        sync: false
+        value: "chMKwiAtiTbYf3RQRZaVmUoMLKAVBYQFIe6oYAJN9nZJw8xFyC"
       - key: TWITTER_CALLBACK_URL
-        value: https://predix.eu.cc/api/auth/twitter/callback
+        value: https://predix-backend-0faz.onrender.com/api/auth/twitter/callback
