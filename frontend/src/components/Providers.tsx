@@ -1,9 +1,9 @@
-'use client';
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/lib/api';
 import type { User } from '@/types';
 import { I18nProvider } from '@/i18n/I18nProvider';
+import { NotificationProvider } from './NotificationProvider';
+import { OrderNotifier } from './OrderNotifier';
 
 interface AppContextType {
   user: User | null;
@@ -80,9 +80,12 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <I18nProvider>
-      <AppContext.Provider value={{ user, setUser, login, loginWithEmail, bindWallet, logout, loading }}>
-        {children}
-      </AppContext.Provider>
+      <NotificationProvider>
+        <AppContext.Provider value={{ user, setUser, login, loginWithEmail, bindWallet, logout, loading }}>
+          <OrderNotifier />
+          {children}
+        </AppContext.Provider>
+      </NotificationProvider>
     </I18nProvider>
   );
 }

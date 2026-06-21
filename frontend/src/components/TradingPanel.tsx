@@ -6,6 +6,7 @@ import { formatPrice, formatPercent, getProbabilityColor } from '@/lib/utils';
 import { useApp } from './Providers';
 import { useRealtimePrice } from '@/hooks/useRealtimePrice';
 import { useTranslation } from '@/i18n/I18nProvider';
+import { useNotification } from './NotificationProvider';
 
 // ---- 订单类型选项 ----
 const ORDER_TYPE_OPTIONS: { value: string; labelKey: string; descriptionKey: string }[] = [
@@ -34,7 +35,7 @@ export function TradingPanel({ market }: TradingPanelProps) {
   const [loading, setLoading] = useState(false);
   const [feeInfo, setFeeInfo] = useState<any>(null);
   const [tickSize, setTickSize] = useState<number>(0.01);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const { showToast } = useNotification();
 
   // ---- 数据解析 ----
   const safeJson = (val: any): any[] => {
@@ -126,12 +127,6 @@ export function TradingPanel({ market }: TradingPanelProps) {
     return !!(tokenId && numShares > 0 && numPrice > 0 && numPrice < 1);
   }, [user, loading, isMarket, tokenId, numShares, numPrice]);
 
-  // ---- Toast ----
-  const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
-  };
-
   // ---- 价格步进 ----
   const adjustPrice = (delta: number) => {
     const current = parseFloat(price || String(currentPrice)) || 0;
@@ -186,19 +181,7 @@ export function TradingPanel({ market }: TradingPanelProps) {
   const showSummary = (isMarket && numShares > 0) || (!isMarket && numShares > 0 && numPrice > 0);
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl overflow-hidden relative">
-      {/* Toast */}
-      {toast && (
-        <div className={`absolute top-2 left-2 right-2 z-10 px-3 py-2.5 rounded-lg text-xs font-medium flex items-center gap-2 ${
-          toast.type === 'success'
-            ? 'bg-[var(--green-bg)] text-[var(--green)] border border-[var(--green)]/20'
-            : 'bg-[var(--red-bg)] text-[var(--red)] border border-[var(--red)]/20'
-        }`}>
-          <span>{toast.type === 'success' ? '✅' : '❌'}</span>
-          <span className="flex-1">{toast.message}</span>
-          <button onClick={() => setToast(null)} className="opacity-60 hover:opacity-100">✕</button>
-        </div>
-      )}
+    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl overflow-hidden">
 
       {/* 演示模式提示 */}
       {feeInfo?.demo && (
