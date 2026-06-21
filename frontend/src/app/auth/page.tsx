@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/components/Providers';
 import { useTranslation } from '@/i18n/I18nProvider';
+import { api } from '@/lib/api';
 
 type AuthMode = 'login' | 'signup';
 
@@ -16,7 +17,7 @@ interface FormErrors {
 
 export default function AuthPage() {
   const router = useRouter();
-  const { login, user } = useApp();
+  const { login, loginWithEmail, user, setUser } = useApp();
   const { t } = useTranslation();
 
   const [mode, setMode] = useState<AuthMode>('login');
@@ -37,10 +38,9 @@ export default function AuthPage() {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Redirect if already logged in
-  if (user) {
-    router.replace('/');
-    return null;
-  }
+  useEffect(() => {
+    if (user) router.replace('/');
+  }, [user, router]);
 
   // Escape 键关闭 + 焦点陷阱
   useEffect(() => {
@@ -107,20 +107,26 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      // Simulate API call — replace with real endpoint when backend supports email/password auth
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (mode === 'login') {
+        await loginWithEmail(email, password);
+      } else {
+        // 注册：先调用注册接口
+        const res: any = await api.register(email, password, username);
+        if (!res.success) {
+          throw new Error(res.error || '注册失败');
+        }
+        // 注册成功后自动登录
+        localStorage.setItem('token', res.data.token);
+        setUser(res.data.user);
+        router.replace('/');
+        return;
+      }
 
-      if (mode === 'login') {
-        setMessage({ type: 'success', text: t('auth.loginSuccess') });
-      } else {
-        setMessage({ type: 'success', text: t('auth.signupSuccess') });
-      }
-    } catch {
-      if (mode === 'login') {
-        setMessage({ type: 'error', text: t('auth.loginFailed') });
-      } else {
-        setMessage({ type: 'error', text: t('auth.signupFailed') });
-      }
+      // 登录成功后跳转首页
+      router.replace('/');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : (mode === 'login' ? t('auth.loginFailed') : t('auth.signupFailed'));
+      setMessage({ type: 'error', text: msg });
     } finally {
       setLoading(false);
     }

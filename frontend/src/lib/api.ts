@@ -144,6 +144,18 @@ export const api = {
       body: JSON.stringify({ walletAddress }),
     }),
 
+  register: (email: string, password: string, username?: string) =>
+    fetchAPI<ApiResponse<AuthResponse>>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, username }),
+    }),
+
+  loginWithEmail: (email: string, password: string) =>
+    fetchAPI<ApiResponse<AuthResponse>>('/auth/login/email', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+
   getMe: () =>
     fetchAPI<ApiResponse<User>>('/auth/me'),
 

@@ -23,7 +23,7 @@ interface TradingPanelProps {
 
 export function TradingPanel({ market }: TradingPanelProps) {
   const { user } = useApp();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
   const [amount, setAmount] = useState('');
   const [price, setPrice] = useState('');
@@ -42,7 +42,11 @@ export function TradingPanel({ market }: TradingPanelProps) {
     }
     return [];
   };
-  const outcomes = safeJson(market.outcomes_zh || market.outcomes);
+  const outcomes = safeJson(
+    locale === 'zh'
+      ? (market.outcomes_zh || market.outcomes)
+      : (market.outcomes || market.outcomes_zh)
+  );
   const prices = safeJson(market.outcomePrices).map((p: any) => parseFloat(p));
   const clobTokens = safeJson(market.clobTokenIds);
   const tokenId = clobTokens[0];
@@ -167,13 +171,15 @@ export function TradingPanel({ market }: TradingPanelProps) {
       {feeInfo?.demo && (
         <div className="px-4 py-1.5 text-[10px] text-center bg-[var(--accent-amber)]/10 text-[var(--accent-amber)] border-b border-[var(--accent-amber)]/20 flex items-center justify-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-amber)] animate-pulse" />
-          ⚠️ 演示模式 — 交易为模拟执行，不会上链
+          {t('trade.demoWarning')}
         </div>
       )}
 
       {/* 交易面板头部 */}
       <div className="p-4 border-b border-[var(--border)] bg-gradient-to-b from-[var(--accent-blue)]/3 to-transparent">
-        <h3 className="text-sm font-bold mb-3 leading-snug text-[var(--text-bright)]">{market.question_zh || market.question}</h3>
+        <h3 className="text-sm font-bold mb-3 leading-snug text-[var(--text-bright)]">
+          {locale === 'zh' ? (market.question_zh || market.question) : (market.question || market.question_zh)}
+        </h3>
 
         {/* 结果选项 */}
         <div className="space-y-2">

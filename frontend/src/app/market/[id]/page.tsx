@@ -8,6 +8,14 @@ import { TradingPanel } from '@/components/TradingPanel';
 import { formatPrice, formatVolume, formatPercent, timeAgo, countdown } from '@/lib/utils';
 import { useTranslation } from '@/i18n/I18nProvider';
 
+function safeJsonArray(val: any): any[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try { return JSON.parse(val); } catch { return []; }
+  }
+  return [];
+}
+
 export default function MarketDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -20,19 +28,37 @@ export default function MarketDetailPage() {
   useEffect(() => {
     if (!id) return;
 
+    let cancelled = false;
     setLoading(true);
-    Promise.all([
-      api.getMarket(id),
-      api.getTrades(id),
-      api.getPriceHistory(id, '1h'),
-    ])
-      .then(([marketRes, tradesRes, historyRes]: any[]) => {
-        setMarket(marketRes.data);
-        setTrades((tradesRes.data || []).slice(0, 30));
-        setPriceHistory(historyRes.data || []);
+
+    // 先获取市场数据，再用 CLOB token ID 获取交易和价格历史
+    api.getMarket(id)
+      .then(async (marketRes: any) => {
+        if (cancelled) return;
+        const m = marketRes.data;
+        setMarket(m);
+
+        // 从市场数据中提取第一个 CLOB token ID
+        const clobTokens = safeJsonArray(m?.clobTokenIds);
+        const tokenId = clobTokens[0];
+
+        if (tokenId) {
+          const [tradesRes, historyRes] = await Promise.all([
+            api.getTrades(tokenId).catch(() => ({ data: [] })),
+            api.getPriceHistory(tokenId, '1h').catch(() => ({ data: [] })),
+          ]);
+          if (!cancelled) {
+            setTrades(((tradesRes as any).data || []).slice(0, 30));
+            setPriceHistory((historyRes as any).data || []);
+          }
+        }
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, [id]);
 
   if (loading) {
@@ -57,8 +83,10 @@ export default function MarketDetailPage() {
     );
   }
 
-  const outcomes = market.outcomes_zh || market.outcomes || [];
-  const prices = (market.outcomePrices || []).map((p: string) => parseFloat(p));
+  const outcomes = locale === 'zh'
+    ? (safeJsonArray(market.outcomes_zh).length > 0 ? safeJsonArray(market.outcomes_zh) : safeJsonArray(market.outcomes))
+    : (safeJsonArray(market.outcomes).length > 0 ? safeJsonArray(market.outcomes) : safeJsonArray(market.outcomes_zh));
+  const prices = safeJsonArray(market.outcomePrices).map((p: any) => parseFloat(p));
   const volume24h = parseFloat(market.volume24hr || market.volume || '0');
 
   return (
@@ -76,7 +104,9 @@ export default function MarketDetailPage() {
         {/* 主要内容 */}
         <div className="flex-1 min-w-0">
           {/* 标题 */}
-          <h1 className="text-xl font-bold mb-4">{market.question_zh || market.question}</h1>
+          <h1 className="text-xl font-bold mb-4">
+            {locale === 'zh' ? (market.question_zh || market.question) : (market.question || market.question_zh)}
+          </h1>
 
           {/* 统计信息 */}
           <div className="flex flex-wrap gap-4 mb-6">

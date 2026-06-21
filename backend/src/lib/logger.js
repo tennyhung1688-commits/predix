@@ -3,7 +3,6 @@
  * 提供 traceId 贯穿请求生命周期、日志级别、生产环境 JSON 输出
  */
 const pino = require('pino');
-const { v4: uuidv4 } = require('uuid');
 
 const level = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug');
 

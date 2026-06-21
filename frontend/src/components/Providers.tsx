@@ -9,6 +9,7 @@ interface AppContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   login: (walletAddress: string) => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -17,6 +18,7 @@ const AppContext = createContext<AppContextType>({
   user: null,
   setUser: () => {},
   login: async () => {},
+  loginWithEmail: async () => {},
   logout: () => {},
   loading: true,
 });
@@ -53,6 +55,14 @@ export function Providers({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    const res: any = await api.loginWithEmail(email, password);
+    if (res.success) {
+      localStorage.setItem('token', res.data.token);
+      setUser(res.data.user);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
@@ -60,7 +70,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <I18nProvider>
-      <AppContext.Provider value={{ user, setUser, login, logout, loading }}>
+      <AppContext.Provider value={{ user, setUser, login, loginWithEmail, logout, loading }}>
         {children}
       </AppContext.Provider>
     </I18nProvider>

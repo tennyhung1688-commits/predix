@@ -66,7 +66,9 @@ export interface Trade {
 
 export interface User {
   id: string;
-  walletAddress: string;
+  walletAddress?: string;
+  email?: string;
+  username?: string;
   role?: string; // "user" | "admin"
   createdAt: string;
   tradeVolume: number;
@@ -77,6 +79,9 @@ export interface User {
   available?: number;
   totalDeposited: number;
   totalWithdrawn: number;
+  // 推荐
+  referralCode?: string;
+  referralEarnings?: number;
   // 游戏化
   gameStats?: GameStats;
 }

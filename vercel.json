@@ -1,0 +1,11 @@
+{
+  "experimentalServices": {
+    "predix-backend": {
+      "type": "web",
+      "root": "backend",
+      "entrypoint": "src/index.js",
+      "routePrefix": "/",
+      "buildCommand": "npm install && npx prisma generate"
+    }
+  }
+}

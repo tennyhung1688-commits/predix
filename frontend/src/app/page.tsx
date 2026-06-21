@@ -3,7 +3,8 @@
 import { useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useMarkets } from '@/hooks/useMarkets';
 import { MarketCard } from '@/components/MarketCard';
-import { TradingPanel } from '@/components/TradingPanel';
+import { HeroSection } from '@/components/HeroSection';
+import { CategoryFilter } from '@/components/CategoryFilter';
 import { api } from '@/lib/api';
 import { formatVolume } from '@/lib/utils';
 import { useTranslation } from '@/i18n/I18nProvider';
@@ -14,34 +15,32 @@ interface Category {
   slug: string;
 }
 
+type SortMode = 'volume' | 'latest' | 'trending';
+
 export default function Home() {
   const { t } = useTranslation();
   const { markets, loading, loadingMore, error, hasMore, isRefreshing, loadMore, pendingScrollRestore } = useMarkets();
   const [activeTab, setActiveTab] = useState('all');
-  const [selectedMarket, setSelectedMarket] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('volume');
   const [trendingTags, setTrendingTags] = useState<{ id: number; label: string }[]>([]);
   const [stats, setStats] = useState({ totalVolume: 0, marketsCount: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
-  const [popularOnly, setPopularOnly] = useState(false); // 默认显示全部市场
-  const [speedOnly, setSpeedOnly] = useState(false);     // 仅显示极速 5 分钟市场
-  const POPULAR_VOLUME_THRESHOLD = 0; // 热门门槛（当前关闭，显示全部）
+  const [popularOnly, setPopularOnly] = useState(false);
+  const [speedOnly, setSpeedOnly] = useState(false);
+  const POPULAR_VOLUME_THRESHOLD = 0;
 
-  // 判断是否为极速市场（Up or Down 模式）
   const isSpeedMarket = (m: any) => {
     const q = (m.question || m.title || '').toLowerCase();
     return q.includes('up or down') || q.includes('up/down');
   };
 
-  // 极速市场缓存
   const [speedMarkets, setSpeedMarkets] = useState<any[]>([]);
   const [speedLoading, setSpeedLoading] = useState(false);
-
-  // 分类市场数据（从 API 按 tag 拉取）
   const [categoryMarkets, setCategoryMarkets] = useState<Record<string, any[]>>({});
   const [categoryLoading, setCategoryLoading] = useState(false);
 
-  // 加载分类列表
+  // Load categories and trending tags
   useEffect(() => {
     api.getCategories()
       .then((res: any) => setCategories(res.data || []))
@@ -49,7 +48,6 @@ export default function Home() {
     api.getTrendingTags()
       .then((res: any) => {
         const tags = res.data || [];
-        // 兼容旧格式（纯字符串数组）和新格式（对象数组）
         setTrendingTags(tags.map((t: any) =>
           typeof t === 'string' ? { id: 0, label: t } : t
         ));
@@ -57,7 +55,7 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  // 预加载极速市场（crypto 标签）
+  // Preload speed markets
   useEffect(() => {
     if (speedMarkets.length > 0) return;
     setSpeedLoading(true);
@@ -70,11 +68,10 @@ export default function Home() {
       .finally(() => setSpeedLoading(false));
   }, []);
 
-  // 当切换 tab 时，按需从 API 拉取对应分类
+  // Fetch category markets when tab changes
   useEffect(() => {
     if (activeTab === 'all') return;
-    if (categoryMarkets[activeTab]) return; // 已缓存
-
+    if (categoryMarkets[activeTab]) return;
     setCategoryLoading(true);
     api.getMarkets({ tag: activeTab, limit: '50', order: 'volume24hr' })
       .then((res: any) => {
@@ -84,7 +81,7 @@ export default function Home() {
       .finally(() => setCategoryLoading(false));
   }, [activeTab, categoryMarkets]);
 
-  // 更新统计（与当前过滤条件保持一致）
+  // Update stats
   useEffect(() => {
     let source = activeTab === 'all' ? markets : (categoryMarkets[activeTab] || []);
     if (popularOnly) {
@@ -100,21 +97,18 @@ export default function Home() {
     }
   }, [markets, categoryMarkets, activeTab, popularOnly]);
 
-  // 过滤市场（搜索 + 热门筛选，分类由 API 保证）
+  // Filter and sort markets
   const filteredMarkets = useMemo(() => {
     let result = activeTab === 'all' ? markets : (categoryMarkets[activeTab] || []);
 
-    // 仅显示热门：过滤掉 24h 交易量低于门槛的市场
     if (popularOnly) {
       result = result.filter((m: any) =>
         parseFloat(m.volume24hr || m.volume || '0') >= POPULAR_VOLUME_THRESHOLD
       );
     }
 
-    // 仅显示极速 5 分钟市场 — 合并预加载的极速缓存
     if (speedOnly) {
       if (activeTab === 'all' && speedMarkets.length > 0) {
-        // 全部 tab 下从预加载的极速缓存中取，保证完整
         result = speedMarkets;
       } else {
         result = result.filter((m: any) => isSpeedMarket(m));
@@ -128,12 +122,25 @@ export default function Home() {
       );
     }
 
-    return result;
-  }, [markets, categoryMarkets, activeTab, searchQuery, popularOnly]);
+    // Sort
+    switch (sortMode) {
+      case 'volume':
+        return [...result].sort((a, b) =>
+          parseFloat(b.volume24hr || b.volume || '0') - parseFloat(a.volume24hr || a.volume || '0')
+        );
+      case 'latest':
+        return [...result].sort((a, b) =>
+          new Date(b.createdAt || b.endDate || 0).getTime() - new Date(a.createdAt || a.endDate || 0).getTime()
+        );
+      case 'trending':
+        return [...result]; // Keep API order (already volume-sorted)
+      default:
+        return result;
+    }
+  }, [markets, categoryMarkets, activeTab, searchQuery, popularOnly, speedOnly, sortMode]);
 
   const isLoading = loading || categoryLoading;
 
-  // 静默刷新后恢复滚动位置 — useLayoutEffect 在 DOM commit 后、浏览器 paint 前同步执行
   useLayoutEffect(() => {
     if (pendingScrollRestore.current > 0) {
       const y = pendingScrollRestore.current;
@@ -142,11 +149,24 @@ export default function Home() {
     }
   }, [markets]);
 
+  const sortOptions: { key: SortMode; label: string; icon: string }[] = [
+    { key: 'volume', label: t('home.sortVolume'), icon: '📊' },
+    { key: 'latest', label: t('home.sortLatest'), icon: '🆕' },
+    { key: 'trending', label: t('home.sortTrending'), icon: '🔥' },
+  ];
+
   return (
     <div className="max-w-[1440px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      {/* 顶部统计栏 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
-        <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 card-hover overflow-hidden">
+      {/* === Hero Carousel === */}
+      {!loading && markets.length > 0 && (
+        <div className="-mx-3 sm:-mx-4 -mt-4 sm:-mt-6 mb-6">
+          <HeroSection markets={markets} />
+        </div>
+      )}
+
+      {/* === Stats Bar === */}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3 sm:p-4 card-hover overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-cyan)] opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="flex items-center gap-2 mb-1">
             <svg className="w-3.5 h-3.5 text-[var(--accent-blue)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -154,11 +174,11 @@ export default function Home() {
             </svg>
             <span className="text-xs text-[var(--text-muted)]">{t('home.24hVolume')}</span>
           </div>
-          <div className="text-xl font-bold tabular-nums animate-count-up text-[var(--text-bright)] font-display">
+          <div className="text-lg sm:text-xl font-bold tabular-nums animate-count-up text-[var(--text-bright)] font-display">
             {formatVolume(stats.totalVolume)}
           </div>
         </div>
-        <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 card-hover overflow-hidden">
+        <div className="group relative bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3 sm:p-4 card-hover overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent-purple)] to-[var(--accent-amber)] opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="flex items-center gap-2 mb-1">
             <svg className="w-3.5 h-3.5 text-[var(--accent-purple)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -166,92 +186,91 @@ export default function Home() {
             </svg>
             <span className="text-xs text-[var(--text-muted)]">{t('home.activeMarkets')}</span>
           </div>
-          <div className="text-xl font-bold tabular-nums animate-count-up font-display">
+          <div className="text-lg sm:text-xl font-bold tabular-nums animate-count-up font-display">
             {stats.marketsCount}
           </div>
         </div>
       </div>
 
-      {/* 搜索和筛选 */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="w-full sm:w-64 relative group">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within:text-[var(--accent-blue)] transition-colors z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input
-            type="text"
-            aria-label={t('home.searchPlaceholder')}
-            placeholder={t('home.searchPlaceholder')}
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-light)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-blue)] focus:shadow-[0_0_15px_rgba(79,143,255,0.10)] transition-colors transition-shadow duration-300"
-          />
-        </div>
+      {/* === Search & Sort & Filters === */}
+      <div className="flex flex-col gap-3 mb-4">
+        {/* Row 1: Search + Quick Filters */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* Search */}
+          <div className="w-full sm:w-56 relative group">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within:text-[var(--accent-blue)] transition-colors z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input
+              type="text"
+              aria-label={t('home.searchPlaceholder')}
+              placeholder={t('home.searchPlaceholder')}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-light)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-blue)] focus:shadow-[0_0_15px_rgba(79,143,255,0.10)] transition-colors transition-shadow duration-300"
+            />
+          </div>
 
-        {/* 热门切换 */}
-        <button
-          onClick={() => setPopularOnly(!popularOnly)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium whitespace-nowrap transition-colors transition-shadow duration-300 ${
-            popularOnly
-              ? 'bg-[var(--accent-amber)]/10 border-[var(--accent-amber)]/30 text-[var(--accent-amber)] shadow-[0_0_12px_rgba(251,191,36,0.10)]'
-              : 'bg-[var(--bg-card)] border-[var(--border-light)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--border)]'
-          }`}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-          </svg>
-          {popularOnly ? t('home.popularOnly') : t('home.showAll')}
-        </button>
+          {/* Sort pills */}
+          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-light)]">
+            {sortOptions.map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setSortMode(opt.key)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-300 ${
+                  sortMode === opt.key
+                    ? 'bg-[var(--gradient-brand)] text-white shadow-[0_2px_8px_rgba(79,143,255,0.25)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                <span>{opt.icon}</span>
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
-        {/* 极速切换 */}
-        <button
-          onClick={() => setSpeedOnly(!speedOnly)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium whitespace-nowrap transition-colors transition-shadow duration-300 ${
-            speedOnly
-              ? 'bg-[var(--accent-emerald)]/10 border-[var(--accent-emerald)]/30 text-[var(--accent-emerald)] shadow-[0_0_12px_rgba(16,185,129,0.10)]'
-              : 'bg-[var(--bg-card)] border-[var(--border-light)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--border)]'
-          }`}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
-          </svg>
-          {speedOnly ? t('home.speedActive') : t('home.speed')}
-        </button>
-
-          {/* 分类 Tab */}
-        <div className="flex gap-1 bg-[var(--bg-card)] border border-[var(--border-light)] rounded-xl p-1 overflow-x-auto snap-x snap-mandatory items-center flex-1 min-w-0">
-          {/* "全部" tab */}
+          {/* Popular toggle */}
           <button
-            onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-300 ${
-              activeTab === 'all'
-                ? 'bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-purple)] text-white shadow-[0_2px_8px_rgba(79,143,255,0.25)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+            onClick={() => setPopularOnly(!popularOnly)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium whitespace-nowrap transition-all duration-300 shrink-0 ${
+              popularOnly
+                ? 'bg-[var(--accent-amber)]/10 border-[var(--accent-amber)]/30 text-[var(--accent-amber)] shadow-[0_0_12px_rgba(251,191,36,0.10)]'
+                : 'bg-[var(--bg-card)] border-[var(--border-light)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--border)]'
             }`}
           >
-            {t('home.all')}
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+            {popularOnly ? t('home.popularOnly') : t('home.showAll')}
           </button>
 
-          {/* 所有分类直接平铺 */}
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveTab(cat.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-300 ${
-                activeTab === cat.id
-                  ? 'bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-purple)] text-white shadow-[0_2px_8px_rgba(79,143,255,0.25)]'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-              }`}
-            >
-              {t(`category.${cat.id}` as any) || cat.label}
-            </button>
-          ))}
+          {/* Speed toggle */}
+          <button
+            onClick={() => setSpeedOnly(!speedOnly)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium whitespace-nowrap transition-all duration-300 shrink-0 ${
+              speedOnly
+                ? 'bg-[var(--accent-emerald)]/10 border-[var(--accent-emerald)]/30 text-[var(--accent-emerald)] shadow-[0_0_12px_rgba(16,185,129,0.10)]'
+                : 'bg-[var(--bg-card)] border-[var(--border-light)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--border)]'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
+            </svg>
+            {speedOnly ? t('home.speedActive') : t('home.speed')}
+          </button>
         </div>
+
+        {/* Row 2: Category Pills */}
+        <CategoryFilter
+          categories={categories}
+          activeTab={activeTab}
+          onSelect={setActiveTab}
+        />
       </div>
 
-      {/* 趋势标签 */}
+      {/* === Trending Tags === */}
       {trendingTags.length > 0 && (
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 scrollbar-hide">
           <span className="text-xs text-[var(--text-muted)] shrink-0 flex items-center gap-1">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
@@ -259,63 +278,55 @@ export default function Home() {
             {t('home.trending')}:
           </span>
           {trendingTags.map((tag, i) => {
-            // 尝试匹配已知分类
             const matchCategory = (tagLabel: string): string | null => {
               const labelLower = tagLabel.toLowerCase();
               for (const cat of categories) {
-                const catLabel = cat.label.replace(/[^\w\s]/g, '').toLowerCase(); // 去掉 emoji
-                if (
-                  cat.slug === labelLower ||
-                  catLabel === labelLower ||
-                  labelLower.includes(cat.slug) ||
-                  catLabel.includes(labelLower)
-                ) {
+                const catLabel = cat.label.replace(/[^\w\s]/g, '').toLowerCase();
+                if (cat.slug === labelLower || catLabel === labelLower || labelLower.includes(cat.slug) || catLabel.includes(labelLower)) {
                   return cat.slug;
                 }
               }
               return null;
             };
-            
             const matchedSlug = matchCategory(tag.label);
-            
             return (
-            <button
-              key={i}
-              onClick={() => {
-                setSearchQuery('');
-                if (matchedSlug) {
-                  setActiveTab(matchedSlug);
-                } else {
-                  // 未匹配到已知分类，用标签 ID 拉取对应市场
-                  setActiveTab(String(tag.id));
-                }
-              }}
-              className={`px-2.5 py-1 rounded-full border text-xs transition-all duration-300 whitespace-nowrap ${
-                (activeTab !== 'all' && matchedSlug === activeTab) || activeTab === String(tag.id)
-                  ? 'bg-[var(--accent-cyan)]/10 border-[var(--accent-cyan)]/30 text-[var(--accent-cyan)]'
-                  : 'bg-[var(--bg-card)] border-[var(--border-light)] text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:border-[var(--accent-cyan)]/30 hover:shadow-[0_0_12px_rgba(34,211,238,0.10)]'
-              }`}
-            >
-              {tag.label}
-            </button>
+              <button
+                key={i}
+                onClick={() => {
+                  setSearchQuery('');
+                  if (matchedSlug) {
+                    setActiveTab(matchedSlug);
+                  } else {
+                    setActiveTab(String(tag.id));
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-full border text-xs transition-all duration-300 whitespace-nowrap ${
+                  (activeTab !== 'all' && matchedSlug === activeTab) || activeTab === String(tag.id)
+                    ? 'bg-[var(--accent-cyan)]/10 border-[var(--accent-cyan)]/30 text-[var(--accent-cyan)]'
+                    : 'bg-[var(--bg-card)] border-[var(--border-light)] text-[var(--text-secondary)] hover:text-[var(--accent-cyan)] hover:border-[var(--accent-cyan)]/30 hover:shadow-[0_0_12px_rgba(34,211,238,0.10)]'
+                }`}
+              >
+                {tag.label}
+              </button>
             );
           })}
         </div>
       )}
 
-      {/* 主内容区域 */}
-      <div className="flex gap-4 md:gap-6">
-        {/* 市场列表 */}
+      {/* === Market Grid === */}
+      <div>
         <div className="flex-1 min-w-0">
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
-                  <div className="skeleton h-3 w-16 mb-3" />
-                  <div className="skeleton h-4 w-full mb-2" />
-                  <div className="skeleton h-4 w-3/4 mb-3" />
-                  <div className="skeleton h-1.5 w-full rounded-full mb-3" />
-                  <div className="skeleton h-3 w-24" />
+                <div key={i} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl overflow-hidden">
+                  <div className="skeleton h-28" />
+                  <div className="p-4">
+                    <div className="skeleton h-3 w-16 mb-3" />
+                    <div className="skeleton h-4 w-full mb-2" />
+                    <div className="skeleton h-4 w-3/4 mb-3" />
+                    <div className="skeleton h-3.5 w-full rounded-full" />
+                  </div>
                 </div>
               ))}
             </div>
@@ -346,12 +357,11 @@ export default function Home() {
                   <MarketCard
                     key={market.id || market.conditionId}
                     market={market}
-                    onClick={() => setSelectedMarket(market)}
+                    href={`/market/${market.id || market.conditionId}`}
                   />
                 ))}
               </div>
 
-              {/* Load More 按钮 */}
               {activeTab === 'all' && hasMore && (
                 <div className="flex justify-center mt-8 mb-4">
                   <button
@@ -376,44 +386,7 @@ export default function Home() {
             </>
           )}
         </div>
-
-        {/* 交易面板侧边栏 */}
-        <div className="hidden lg:block w-80 shrink-0">
-          <div className="sticky top-20">
-            {selectedMarket ? (
-              <TradingPanel market={selectedMarket} />
-            ) : (
-              <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-8 text-center">
-                <div className="text-4xl mb-4">📊</div>
-                <h3 className="text-sm font-medium mb-2">{t('home.selectMarket')}</h3>
-                <p className="text-xs text-[var(--text-muted)]">
-                  {t('home.selectMarketHint')}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
-
-      {/* 移动端底部交易抽屉 */}
-      {selectedMarket && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 animate-fade-in">
-          <div className="bg-[var(--bg-card)] border-t border-[var(--border)] rounded-t-2xl max-h-[70vh] overflow-y-auto shadow-2xl pb-[env(safe-area-inset-bottom)]">
-            <div className="flex items-center justify-between p-3 border-b border-[var(--border)]">
-              <span className="text-sm font-medium">{t('home.trade')}</span>
-              <button
-                onClick={() => setSelectedMarket(null)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-              </button>
-            </div>
-            <TradingPanel market={selectedMarket} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

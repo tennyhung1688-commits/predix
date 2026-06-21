@@ -21,18 +21,28 @@ export function useTranslation() {
 
 const LOCALE_KEY = 'predix-locale';
 
-function getInitialLocale(): Locale {
+// 始终返回默认语言，避免服务端/客户端水合不一致
+// 客户端挂载后 useEffect 会从 localStorage 恢复用户选择
+function getDefaultLocale(): Locale {
   if (typeof window === 'undefined') return 'zh';
-  const stored = localStorage.getItem(LOCALE_KEY);
-  if (stored === 'en' || stored === 'zh') return stored;
-  // 检测浏览器语言
+  // 在浏览器中检测偏好语言作为默认值（不依赖 localStorage 以避免水合问题）
   const browserLang = navigator.language.toLowerCase();
   if (browserLang.startsWith('zh')) return 'zh';
   return 'zh'; // 默认中文
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(getInitialLocale);
+  const [locale, setLocaleState] = useState<Locale>(getDefaultLocale);
+  const [mounted, setMounted] = useState(false);
+
+  // 客户端挂载后，从 localStorage 恢复用户之前的语言选择
+  useEffect(() => {
+    const stored = localStorage.getItem(LOCALE_KEY);
+    if (stored === 'en' || stored === 'zh') {
+      setLocaleState(stored);
+    }
+    setMounted(true);
+  }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);

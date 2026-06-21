@@ -27,6 +27,29 @@ const loginRules = [
     .matches(/^0x[a-fA-F0-9]{40}$/).withMessage('钱包地址格式不正确'),
 ];
 
+const emailLoginRules = [
+  body('email')
+    .isEmail().withMessage('邮箱格式不正确')
+    .normalizeEmail(),
+  body('password')
+    .isString().withMessage('密码必须是字符串')
+    .isLength({ min: 6, max: 128 }).withMessage('密码长度必须在 6~128 之间'),
+];
+
+const registerRules = [
+  body('email')
+    .isEmail().withMessage('邮箱格式不正确')
+    .normalizeEmail(),
+  body('password')
+    .isString().withMessage('密码必须是字符串')
+    .isLength({ min: 6, max: 128 }).withMessage('密码长度必须在 6~128 之间'),
+  body('username')
+    .optional()
+    .isString().withMessage('用户名必须是字符串')
+    .trim()
+    .isLength({ min: 1, max: 30 }).withMessage('用户名长度必须在 1~30 之间'),
+];
+
 // --- 余额相关校验 ---
 
 const depositRules = [
@@ -114,6 +137,8 @@ const commentRules = [
 module.exports = {
   handleValidation,
   loginRules,
+  emailLoginRules,
+  registerRules,
   depositRules,
   withdrawRules,
   orderRules,

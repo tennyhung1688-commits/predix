@@ -48,6 +48,22 @@ export const translations = {
     'home.selectMarketHint': '点击左侧任意市场即可在此进行交易',
     'home.trade': '交易',
 
+    // 首页 - 精选轮播
+    'home.featured': '精选市场',
+    'home.featuredDescription': '24h 交易量最高的预测市场，智能分析、实时概率、深度流动性。',
+    'home.viewMarket': '查看市场',
+    'home.previous': '上一个',
+    'home.next': '下一个',
+    'home.slide': '幻灯片',
+    'home.play': '播放',
+    'home.pause': '暂停',
+    'home.loading': '加载中',
+
+    // 首页 - 排序
+    'home.sortVolume': '交易量',
+    'home.sortLatest': '最新',
+    'home.sortTrending': '热门',
+
     // 市场卡片
     'card.moreOptions': '更多选项',
     'card.24hVolume': '24h 交易量',
@@ -73,6 +89,7 @@ export const translations = {
     'trade.actualReceive': '实际收入',
     'trade.success': '成功',
     'trade.tradeFailed': '交易失败，请重试',
+    'trade.demoWarning': '⚠️ 演示模式 — 交易为模拟执行，不会上链',
     // 订单类型
     'trade.orderType': '订单类型',
     'trade.orderTypeGTC': 'GTC — 一直有效',
@@ -613,6 +630,22 @@ export const translations = {
     'home.selectMarketHint': 'Click any market on the left to start trading',
     'home.trade': 'Trade',
 
+    // Home - Featured Carousel
+    'home.featured': 'Featured Markets',
+    'home.featuredDescription': 'Top prediction markets by 24h volume — real-time odds, deep liquidity.',
+    'home.viewMarket': 'View Market',
+    'home.previous': 'Previous',
+    'home.next': 'Next',
+    'home.slide': 'Slide',
+    'home.play': 'Play',
+    'home.pause': 'Pause',
+    'home.loading': 'Loading',
+
+    // Home - Sort
+    'home.sortVolume': 'Most Volume',
+    'home.sortLatest': 'Latest',
+    'home.sortTrending': 'Trending',
+
     // Market Card
     'card.moreOptions': 'more options',
     'card.24hVolume': '24h Volume',
@@ -638,6 +671,7 @@ export const translations = {
     'trade.actualReceive': 'Actual Receive',
     'trade.success': 'Success',
     'trade.tradeFailed': 'Trade failed, please retry',
+    'trade.demoWarning': '⚠️ Demo Mode — Trades are simulated and will not be on-chain',
     // Order Type
     'trade.orderType': 'Order Type',
     'trade.orderTypeGTC': 'GTC — Good \'Til Cancelled',

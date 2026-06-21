@@ -5,7 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const pinoHttp = require('pino-http');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const config = require('./config');
 const logger = require('./lib/logger');
 const wsService = require('./services/websocket');
@@ -81,7 +81,7 @@ app.use('/api', csrfProtection);
 
 // TraceId：贯穿请求生命周期
 app.use((req, res, next) => {
-  req.traceId = req.headers['x-trace-id'] || uuidv4();
+  req.traceId = req.headers['x-trace-id'] || crypto.randomUUID();
   res.setHeader('X-Trace-Id', req.traceId);
   next();
 });

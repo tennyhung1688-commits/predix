@@ -29,7 +29,7 @@ interface ComboTemplate {
 
 export function ComboBuilder({ onClose }: ComboBuilderProps) {
   const { user } = useApp();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [tab, setTab] = useState<'builder' | 'myCombos' | 'templates'>('builder');
   const [legs, setLegs] = useState<LegInput[]>([]);
@@ -98,7 +98,11 @@ export function ComboBuilder({ onClose }: ComboBuilderProps) {
 
   const addLeg = (market: Market) => {
     const clobTokens = safeJson(market.clobTokenIds);
-    const outcomes = safeJson((market as any).outcomes_zh || market.outcomes);
+    const outcomes = safeJson(
+      locale === 'zh'
+        ? ((market as any).outcomes_zh || market.outcomes)
+        : (market.outcomes || (market as any).outcomes_zh)
+    );
     if (clobTokens.length === 0 || outcomes.length === 0) return;
 
     setLegs(prev => [...prev, {
@@ -276,14 +280,14 @@ export function ComboBuilder({ onClose }: ComboBuilderProps) {
                 {legs.length < 2 && <span style={styles.hint}>{t('combo.minLegs')}</span>}
               </div>
               {legs.map((leg, i) => {
+                const legMarket = markets.find(m => {
+                  const tks = safeJson(m.clobTokenIds);
+                  return tks[0] === leg.tokenId;
+                });
                 const outcomes = safeJson(
-                  markets.find(m => {
-                    const tks = safeJson(m.clobTokenIds);
-                    return tks[0] === leg.tokenId;
-                  })?.outcomes_zh || markets.find(m => {
-                    const tks = safeJson(m.clobTokenIds);
-                    return tks[0] === leg.tokenId;
-                  })?.outcomes
+                  locale === 'zh'
+                    ? ((legMarket as any)?.outcomes_zh || legMarket?.outcomes)
+                    : (legMarket?.outcomes || (legMarket as any)?.outcomes_zh)
                 );
                 return (
                   <div key={i} style={styles.legCard}>
