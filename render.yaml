@@ -22,8 +22,8 @@ services:
         value: "10000"
 
       # ---- 数据库（Aiven PostgreSQL Free） ----
-      # 在 Render Dashboard → predix-backend → Environment 中手动设置
-      # 格式: postgres://avnadmin:密码@pg-xxx.g.aivencloud.com:24940/defaultdb?sslmode=require
+      # ⚠️ 请在 Render Dashboard → predix-backend → Environment 中手动设置
+      # 连接字符串格式: postgres://avnadmin:密码@pg-xxx.g.aivencloud.com:24940/defaultdb?sslmode=require
       - key: DATABASE_URL
         sync: false
 
@@ -67,3 +67,17 @@ services:
         value: "10"
       - key: TRUST_PROXY
         value: "true"
+
+      # ---- PolygonScan API（余额查询） ----
+      - key: POLYGONSCAN_API_KEY
+        value: "8BTAZ9BFWJT693I2KSIK2SYKZASQ45U8ZP"
+
+      # ---- Polymarket Relayer（代理钱包 Gas 代付） ----
+      - key: RELAYER_API_KEY
+        value: "0x0b1d787401bb283b18e5c73accfd8c8f41269b56caf6e5e5e75e4ddba828f6db"
+      - key: RELAYER_API_KEY_ADDRESS
+        value: "0x8db0B1651ba9D83F5Ba1db5d6F2c01306E1CFcc6"
+
+      # ---- POLY_1271 存款钱包地址 ----
+      - key: PLATFORM_FUNDER_ADDRESS
+        value: "0xb9d36bb4d8effa704cbfdd4be0d204cb404a3062"
