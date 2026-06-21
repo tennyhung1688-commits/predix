@@ -194,12 +194,14 @@ export function Navbar() {
                 )}
               </div>
             ) : (
-              <button
-                onClick={() => setShowWallet(true)}
-                className="px-3 md:px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-purple)] hover:from-[var(--accent-blue-hover)] hover:to-[var(--accent-purple)] text-white text-xs md:text-sm font-semibold transition-all duration-300 shadow-[0_2px_8px_rgba(79,143,255,0.25)] hover:shadow-[0_2px_20px_rgba(79,143,255,0.4)] active:scale-95"
-              >
-                {t('nav.connectWallet')}
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/auth"
+                  className="px-3 md:px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-purple)] hover:from-[var(--accent-blue-hover)] hover:to-[var(--accent-purple)] text-white text-xs md:text-sm font-semibold transition-all duration-300 shadow-[0_2px_8px_rgba(79,143,255,0.25)] hover:shadow-[0_2px_20px_rgba(79,143,255,0.4)] active:scale-95"
+                >
+                  {t('nav.login')}
+                </Link>
+              </div>
             )}
 
             {/* Hamburger Button - Mobile only */}
