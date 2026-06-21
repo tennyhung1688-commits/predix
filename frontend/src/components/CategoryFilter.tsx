@@ -66,7 +66,6 @@ export function CategoryFilter({ categories, activeTab, onSelect }: CategoryFilt
               : 'bg-[var(--bg-card)] border border-[var(--border-light)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-blue)]/30 hover:bg-[var(--accent-blue)]/5'
           }`}
         >
-          <span className="mr-1">{getCategoryIcon(cat)}</span>
           {t(`category.${cat.id}` as any) || cat.label}
         </button>
       ))}
