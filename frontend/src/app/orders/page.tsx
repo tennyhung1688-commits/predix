@@ -105,20 +105,25 @@ export default function OrdersPage() {
     { value: 'failed', label: t('orders.statusFailed') },
   ];
 
-  // 过滤订单
-  const filteredOrders = useMemo(() => {
-    if (orderStatusFilter === 'all') return orders;
-    return orders.filter((o: any) => o.status === orderStatusFilter);
-  }, [orders, orderStatusFilter]);
 
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    const fetcher = activeSubTab === 'orders'
-      ? api.getOrders().then((res: any) => setOrders(res.data || []))
-      : api.getPositions().then((res: any) => setPositions(Array.isArray(res.data) ? res.data : []));
-    fetcher.catch(() => {}).finally(() => setLoading(false));
-  }, [user, activeSubTab]);
+    
+    let ordersPromise: Promise<any>;
+    if (activeSubTab === 'orders') {
+      // 根据筛选状态传递参数到后端
+      const params: any = {};
+      if (orderStatusFilter !== 'all') {
+        params.status = orderStatusFilter;
+      }
+      ordersPromise = api.getOrders(params).then((res: any) => setOrders(res.data || []));
+    } else {
+      ordersPromise = api.getPositions().then((res: any) => setPositions(Array.isArray(res.data) ? res.data : []));
+    }
+    
+    ordersPromise.catch(() => {}).finally(() => setLoading(false));
+  }, [user, activeSubTab, orderStatusFilter]);
 
   // 游戏化数据
   const gameStats = useGameStats(user ? {
@@ -408,13 +413,14 @@ export default function OrdersPage() {
                           <th className="pb-3 font-medium text-right">{t('dashboard.colDirection')}</th>
                           <th className="pb-3 font-medium text-right">{t('dashboard.colSize')}</th>
                           <th className="pb-3 font-medium text-right">{t('dashboard.colPrice')}</th>
+                          <th className="pb-3 font-medium text-right">{t('orders.colType')}</th>
                           <th className="pb-3 font-medium text-right">{t('orders.colStatus')}</th>
                           <th className="pb-3 font-medium text-right">{t('dashboard.colTime')}</th>
                           <th className="pb-3 font-medium text-right">{t('orders.actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredOrders.map((order: any) => {
+                        {orders.map((order: any) => {
                           const canCancel = order.status === 'pending' || order.status === 'live';
                           return (
                             <tr key={order.id} className="border-b border-[var(--border)]/50 hover:bg-[var(--bg-hover)]">
@@ -426,6 +432,11 @@ export default function OrdersPage() {
                               </td>
                               <td className="py-3 text-right tabular-nums">{parseFloat(order.size || '0').toLocaleString()}</td>
                               <td className="py-3 text-right tabular-nums">{formatPrice(order.price || order.originalPrice || '0')}</td>
+                              <td className="py-3 text-right">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+                                  {order.orderType || 'GTC'}
+                                </span>
+                              </td>
                               <td className="py-3 text-right">
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusBadgeClass(order.status)}`}>
                                   {getStatusLabel(order.status, t)}
@@ -455,7 +466,7 @@ export default function OrdersPage() {
 
                   {/* 移动端：卡片布局 */}
                   <div className="md:hidden space-y-2">
-                    {filteredOrders.map((order: any) => {
+                    {orders.map((order: any) => {
                       const canCancel = order.status === 'pending' || order.status === 'live';
                       return (
                         <div key={order.id} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3 active:bg-[var(--bg-hover)] transition-colors">
@@ -468,10 +479,13 @@ export default function OrdersPage() {
                               {order.side === 'BUY' ? t('dashboard.buy') : t('dashboard.sell')}
                             </span>
                           </div>
-                          {/* 第二行：数量 / 价格 / 状态 */}
-                          <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] mb-2">
+                          {/* 第二行：数量 / 价格 / 类型 / 状态 */}
+                          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-2 flex-wrap">
                             <span>{t('dashboard.colSize')}: <span className="text-[var(--text-secondary)] tabular-nums">{parseFloat(order.size || '0').toLocaleString()}</span></span>
                             <span>{t('dashboard.colPrice')}: <span className="text-[var(--text-secondary)] tabular-nums">{formatPrice(order.price || order.originalPrice || '0')}</span></span>
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+                              {order.orderType || 'GTC'}
+                            </span>
                             <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${getStatusBadgeClass(order.status)}`}>
                               {getStatusLabel(order.status, t)}
                             </span>

@@ -131,8 +131,13 @@ export const api = {
   cancelOrder: (orderId: string) =>
     fetchAPI<ApiResponse<SuccessResponse>>(`/order/${orderId}`, { method: 'DELETE' }),
 
-  getOrders: () =>
-    fetchAPI<ApiResponse<PlatformTrade[]>>('/orders'),
+  getOrders: (params?: { status?: string; orderType?: string; limit?: number; offset?: number }) => {
+    const query = params ? Object.entries(params)
+      .filter(([_, v]) => v !== undefined)
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join('&') : '';
+    return fetchAPI<ApiResponse<PlatformTrade[]>>(`/orders${query ? '?' + query : ''}`);
+  },
 
   getFeeInfo: (tags?: string) =>
     fetchAPI<ApiResponse<FeeInfo>>(`/fee-info${tags ? `?tags=${encodeURIComponent(tags)}` : ''}`),

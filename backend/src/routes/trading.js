@@ -436,13 +436,42 @@ router.delete('/order/:orderId', requireAuth,
 // 获取用户订单列表（本地 + Polymarket）
 router.get('/orders', requireAuth, async (req, res) => {
   try {
+    const { status, orderType, limit = 50, offset = 0 } = req.query;
+
+    // 构建查询条件
+    const where = { userId: req.user.id };
+
+    // 状态筛选（支持逗号分隔的多个状态）
+    if (status) {
+      const statusList = status.split(',').map(s => s.trim());
+      where.status = { in: statusList };
+    }
+
+    // 订单类型筛选（支持逗号分隔的多个类型）
+    if (orderType) {
+      const typeList = orderType.split(',').map(t => t.trim());
+      where.orderType = { in: typeList };
+    }
+
     const trades = await prisma.trade.findMany({
-      where: { userId: req.user.id },
+      where,
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: parseInt(limit),
+      skip: parseInt(offset),
     });
 
-    res.json({ success: true, data: trades });
+    // 获取总数（用于分页）
+    const total = await prisma.trade.count({ where });
+
+    res.json({
+      success: true,
+      data: trades,
+      pagination: {
+        total,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+      },
+    });
   } catch (err) {
     sendError(res, err);
   }

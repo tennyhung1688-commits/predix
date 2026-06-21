@@ -7,12 +7,12 @@ import { useApp } from './Providers';
 import { useRealtimePrice } from '@/hooks/useRealtimePrice';
 import { useTranslation } from '@/i18n/I18nProvider';
 
-// ---- 过期时间选项 ----
-const EXPIRY_OPTIONS: { value: string; labelKey: string }[] = [
-  { value: 'GTC', labelKey: 'trade.expiryGTC' },
-  { value: '24h', labelKey: 'trade.expiry24h' },
-  { value: '1h', labelKey: 'trade.expiry1h' },
-  { value: '15m', labelKey: 'trade.expiry15m' },
+// ---- 订单类型选项 ----
+const ORDER_TYPE_OPTIONS: { value: string; labelKey: string; descriptionKey: string }[] = [
+  { value: 'GTC', labelKey: 'orders.orderTypeGTC', descriptionKey: 'orders.orderTypeGTCDesc' },
+  { value: 'FOK', labelKey: 'orders.orderTypeFOK', descriptionKey: 'orders.orderTypeFOKDesc' },
+  { value: 'FAK', labelKey: 'orders.orderTypeFAK', descriptionKey: 'orders.orderTypeFAKDesc' },
+  { value: 'POST_ONLY', labelKey: 'orders.orderTypePostOnly', descriptionKey: 'orders.orderTypePostOnlyDesc' },
 ];
 
 interface TradingPanelProps {
@@ -30,7 +30,7 @@ export function TradingPanel({ market }: TradingPanelProps) {
   const [orderMode, setOrderMode] = useState<'limit' | 'market'>('limit');
   const [price, setPrice] = useState('');
   const [shares, setShares] = useState('');
-  const [expiry, setExpiry] = useState('GTC');
+  const [orderType, setOrderType] = useState<'GTC' | 'FOK' | 'FAK' | 'POST_ONLY'>('GTC');
   const [loading, setLoading] = useState(false);
   const [feeInfo, setFeeInfo] = useState<any>(null);
   const [tickSize, setTickSize] = useState<number>(0.01);
@@ -150,21 +150,19 @@ export function TradingPanel({ market }: TradingPanelProps) {
     if (!user) return;
     setLoading(true);
     try {
-      const gtcMap: Record<string, string> = { GTC: 'GTC', '24h': 'GTC', '1h': 'IOC', '15m': 'IOC' };
       const payload: any = {
         tokenId,
         side,
         outcomeIndex: selectedOutcome,
         tags: marketTags,
         idempotencyKey: crypto.randomUUID(),
+        orderType: isMarket ? `MARKET_${orderType}` : orderType,
       };
       if (isMarket) {
         payload.amount = numShares;
-        payload.orderType = 'MARKET_FAK';
       } else {
         payload.size = numShares;
         payload.price = numPrice;
-        payload.orderType = gtcMap[expiry] || 'GTC';
       }
       const result: any = await api.placeOrder(payload);
       setShares('');
@@ -313,31 +311,34 @@ export function TradingPanel({ market }: TradingPanelProps) {
         ))}
       </div>
 
-      <div className="p-4 space-y-4">
-        {/* ---- 过期时间（限价单） ---- */}
-        {orderMode === 'limit' && (
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1.5 block font-semibold">
-              {t('trade.expiration')}
-            </label>
-            <div className="grid grid-cols-4 gap-1">
-              {EXPIRY_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setExpiry(opt.value)}
-                  className={`py-1.5 text-[10px] font-medium rounded-md transition-all duration-200 ${
-                    expiry === opt.value
-                      ? 'bg-[var(--accent-blue)]/15 text-[var(--accent-blue)] border border-[var(--accent-blue)]/30'
-                      : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border border-[var(--border)] hover:border-[var(--accent-blue)]/30'
-                  }`}
-                >
-                  {t(opt.labelKey as any)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* ---- 订单类型选择 ---- */}
+      <div className="px-4 py-3 border-b border-[var(--border)]">
+        <label className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1.5 block font-semibold">
+          {t('orders.colType')}
+        </label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {ORDER_TYPE_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setOrderType(opt.value as any)}
+              className={`p-2 rounded-lg text-left transition-all duration-200 ${
+                orderType === opt.value
+                  ? 'bg-[var(--accent-blue)]/10 border border-[var(--accent-blue)]/30'
+                  : 'bg-[var(--bg-secondary)] border border-[var(--border)] hover:border-[var(--accent-blue)]/30'
+              }`}
+            >
+              <div className={`text-xs font-semibold ${orderType === opt.value ? 'text-[var(--accent-blue)]' : 'text-[var(--text-primary)]'}`}>
+                {t(opt.labelKey as any)}
+              </div>
+              <div className="text-[9px] text-[var(--text-muted)] mt-0.5 leading-tight">
+                {t(opt.descriptionKey as any)}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
 
+      <div className="p-4 space-y-4">
         {/* ---- 市价单说明 ---- */}
         {orderMode === 'market' && (
           <div className="bg-[var(--accent-blue)]/5 border border-[var(--accent-blue)]/15 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)]">
