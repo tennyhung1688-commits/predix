@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useApp } from '@/components/Providers';
+import { WalletModal } from '@/components/WalletModal';
 import { truncateAddress } from '@/lib/utils';
 import type { BalanceInfo, Transaction } from '@/types';
 
@@ -20,6 +21,7 @@ export default function BalancePage() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showWallet, setShowWallet] = useState(false);
 
   // 自动验证充值
   const [txHash, setTxHash] = useState('');
@@ -145,7 +147,20 @@ export default function BalancePage() {
         <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
           📥 充值 USDC
         </h2>
-        {depositInfo && (
+        {!user?.walletAddress ? (
+          <div className="text-center py-6 space-y-3">
+            <div className="text-4xl">🔐</div>
+            <p className="text-sm text-[var(--text-secondary)]">
+              您通过 X 或邮箱登录，需先绑定 Polygon 钱包才能充值
+            </p>
+            <button
+              onClick={() => setShowWallet(true)}
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--accent-blue)] to-[var(--accent-purple)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+            >
+              绑定钱包
+            </button>
+          </div>
+        ) : depositInfo ? (
           <>
             <div className="text-[10px] uppercase text-[var(--text-muted)] mb-1.5">平台钱包地址 (Polygon)</div>
             <div className="flex gap-2 mb-2">
@@ -182,7 +197,7 @@ export default function BalancePage() {
               </button>
             </div>
           </>
-        )}
+        ) : null}
       </div>
 
       {/* Actions */}
@@ -261,6 +276,8 @@ export default function BalancePage() {
           </div>
         )}
       </div>
+
+      {showWallet && <WalletModal onClose={() => setShowWallet(false)} mode="bind" />}
     </div>
   );
 }

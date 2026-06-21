@@ -8,7 +8,26 @@ const { AppError } = require('../lib/errors');
 
 class BalanceService {
   /**
-   * 获取或创建用户
+   * 通用用户查找（支持 walletAddress 或 userId）
+   */
+  async _findUser(identifier) {
+    if (typeof identifier === 'object') {
+      if (identifier.userId) {
+        return prisma.user.findUnique({ where: { id: identifier.userId } });
+      }
+      if (identifier.walletAddress) {
+        return prisma.user.findUnique({ where: { walletAddress: identifier.walletAddress.toLowerCase() } });
+      }
+    }
+    // 兼容旧调用：字符串 = walletAddress
+    if (typeof identifier === 'string') {
+      return prisma.user.findUnique({ where: { walletAddress: identifier.toLowerCase() } });
+    }
+    return null;
+  }
+
+  /**
+   * 获取或创建用户（仅钱包用户）
    */
   async getOrCreateUser(walletAddress) {
     let user = await prisma.user.findUnique({
@@ -30,10 +49,11 @@ class BalanceService {
   }
 
   /**
-   * 获取用户余额
+   * 获取用户余额（支持 userId 或 walletAddress）
    */
-  async getBalance(walletAddress) {
-    const user = await this.getOrCreateUser(walletAddress);
+  async getBalance(identifier) {
+    const user = await this._findUser(identifier);
+    if (!user) throw new AppError('用户不存在', 404);
     return {
       balance: user.balance,
       lockedBalance: user.lockedBalance,
@@ -47,8 +67,21 @@ class BalanceService {
    * 充值（模拟：记录链上充值交易）
    * 实际生产环境需监听链上 USDC 转账事件
    */
+  async depositByUserId(userId, txHash, amount) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new AppError('用户不存在', 404);
+    if (!user.walletAddress) throw new AppError('请先绑定钱包再进行充值', 400);
+
+    return this._doDeposit(user, txHash, amount);
+  }
+
+  // 兼容旧接口
   async deposit(walletAddress, txHash, amount) {
     const user = await this.getOrCreateUser(walletAddress);
+    return this._doDeposit(user, txHash, amount);
+  }
+
+  async _doDeposit(user, txHash, amount) {
 
     // 检查 txHash 是否已处理
     const existing = await prisma.deposit.findUnique({ where: { txHash } });
@@ -133,10 +166,22 @@ class BalanceService {
   }
 
   /**
-   * 提现申请
+   * 提现申请（支持 userId）
    */
+  async withdrawById(userId, toAddress, amount) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new AppError('用户不存在', 404);
+    if (!user.walletAddress) throw new AppError('请先绑定钱包再进行提现', 400);
+    return this._doWithdraw(user, toAddress, amount);
+  }
+
+  // 兼容旧接口
   async withdraw(walletAddress, toAddress, amount) {
     const user = await this.getOrCreateUser(walletAddress);
+    return this._doWithdraw(user, toAddress, amount);
+  }
+
+  async _doWithdraw(user, toAddress, amount) {
     const minAmount = parseFloat(process.env.MIN_WITHDRAW_AMOUNT) || 10;
 
     if (amount < minAmount) {
@@ -313,12 +358,10 @@ class BalanceService {
   }
 
   /**
-   * 获取用户交易记录
+   * 获取用户交易记录（支持 userId 或 walletAddress）
    */
-  async getTransactions(walletAddress, limit = 50) {
-    const user = await prisma.user.findUnique({
-      where: { walletAddress: walletAddress.toLowerCase() },
-    });
+  async getTransactions(identifier, limit = 50) {
+    const user = await this._findUser(identifier);
     if (!user) return [];
 
     return prisma.transaction.findMany({

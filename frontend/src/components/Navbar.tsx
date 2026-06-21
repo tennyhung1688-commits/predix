@@ -9,10 +9,12 @@ import { truncateAddress } from '@/lib/utils';
 import { useTranslation } from '@/i18n/I18nProvider';
 
 export function Navbar() {
-  const { user, logout } = useApp();
+  const { user, logout, bindWallet } = useApp();
   const { t, locale, setLocale } = useTranslation();
   const [showWallet, setShowWallet] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [bindLoading, setBindLoading] = useState(false);
+  const [walletMode, setWalletMode] = useState<'login' | 'bind'>('login');
   const [showMobileNav, setShowMobileNav] = useState(false);
 
   const toggleLang = () => {
@@ -125,6 +127,7 @@ export function Navbar() {
             </button>
 
             {user ? (
+              user.walletAddress ? (
               <div className="relative">
                 <button
                   onClick={() => setShowMenu(!showMenu)}
@@ -134,7 +137,7 @@ export function Navbar() {
                     {user.walletAddress ? user.walletAddress.slice(2, 4).toUpperCase() : (user.username?.[0] || user.email?.[0] || '?').toUpperCase()}
                   </div>
                   <span className="hidden sm:inline text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
-                    {user.walletAddress ? truncateAddress(user.walletAddress) : (user.username || user.email?.split('@')[0] || 'User')}
+                    {truncateAddress(user.walletAddress)}
                   </span>
                 </button>
 
@@ -194,6 +197,27 @@ export function Navbar() {
                 )}
               </div>
             ) : (
+              /* 已登录但未绑定钱包（X/邮箱用户） */
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline text-xs text-[var(--text-muted)]">
+                  {user.username || user.email?.split('@')[0] || 'User'}
+                </span>
+                <button
+                  onClick={() => { setWalletMode('bind'); setShowWallet(true); }}
+                  disabled={bindLoading}
+                  className="px-3 py-1.5 rounded-lg border border-[var(--accent-amber)] text-[var(--accent-amber)] text-xs font-semibold hover:bg-[var(--accent-amber)]/10 transition-all duration-200 disabled:opacity-50"
+                >
+                  {bindLoading ? '...' : t('nav.bindWallet')}
+                </button>
+                <button
+                  onClick={logout}
+                  className="px-2 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--red)] transition-colors"
+                >
+                  {t('nav.disconnect')}
+                </button>
+              </div>
+            )
+          ) : (
               <div className="flex items-center gap-2">
                 <Link
                   href="/auth"
@@ -306,7 +330,7 @@ export function Navbar() {
         </>
       )}
 
-      {showWallet && <WalletModal onClose={() => setShowWallet(false)} />}
+      {showWallet && <WalletModal onClose={() => setShowWallet(false)} mode={walletMode} />}
     </>
   );
 }

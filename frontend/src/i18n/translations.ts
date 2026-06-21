@@ -16,6 +16,7 @@ export const translations = {
     'nav.weather': '天气',
     'nav.smartMoney': '聪明钱',
     'nav.login': '登录 / 注册',
+    'nav.bindWallet': '绑定钱包',
     'nav.connectWallet': '连接钱包',
     'nav.disconnect': '断开钱包',
     'nav.myOrders': '我的订单',
@@ -82,8 +83,10 @@ export const translations = {
     'trade.buy': '买入',
     'trade.sell': '卖出',
     'trade.connectFirst': '请先连接钱包',
+    'trade.bindWalletFirst': '请先绑定钱包',
     'trade.processing': '处理中...',
     'trade.connectHint': '连接钱包即可开始交易',
+    'trade.bindWalletHint': '绑定 Polygon 钱包后即可交易',
     'trade.orderBook': '订单簿',
     'trade.realtime': '实时连接',
     'trade.polling': '轮询模式',
@@ -126,6 +129,7 @@ export const translations = {
 
     // 钱包弹窗
     'wallet.title': '连接钱包',
+    'wallet.bindTitle': '绑定钱包',
     'wallet.metamask': 'MetaMask',
     'wallet.metamaskDesc': '浏览器扩展钱包',
     'wallet.phantom': 'Phantom',
@@ -622,6 +626,7 @@ export const translations = {
     'nav.weather': 'Weather',
     'nav.smartMoney': 'Smart Money',
     'nav.login': 'Log in / Sign up',
+    'nav.bindWallet': 'Bind Wallet',
     'nav.connectWallet': 'Connect Wallet',
     'nav.disconnect': 'Disconnect',
     'nav.myOrders': 'My Orders',
@@ -688,8 +693,10 @@ export const translations = {
     'trade.buy': 'Buy',
     'trade.sell': 'Sell',
     'trade.connectFirst': 'Connect wallet first',
+    'trade.bindWalletFirst': 'Bind wallet first',
     'trade.processing': 'Processing...',
     'trade.connectHint': 'Connect your wallet to start trading',
+    'trade.bindWalletHint': 'Bind a Polygon wallet to start trading',
     'trade.orderBook': 'Order Book',
     'trade.realtime': 'Live',
     'trade.polling': 'Polling',
@@ -732,6 +739,7 @@ export const translations = {
 
     // Wallet Modal
     'wallet.title': 'Connect Wallet',
+    'wallet.bindTitle': 'Bind Your Wallet',
     'wallet.metamask': 'MetaMask',
     'wallet.metamaskDesc': 'Browser extension wallet',
     'wallet.phantom': 'Phantom',

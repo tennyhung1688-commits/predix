@@ -10,6 +10,7 @@ interface AppContextType {
   setUser: (user: User | null) => void;
   login: (walletAddress: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
+  bindWallet: (walletAddress: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -19,6 +20,7 @@ const AppContext = createContext<AppContextType>({
   setUser: () => {},
   login: async () => {},
   loginWithEmail: async () => {},
+  bindWallet: async () => {},
   logout: () => {},
   loading: true,
 });
@@ -68,9 +70,17 @@ export function Providers({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const bindWallet = async (walletAddress: string) => {
+    const res: any = await api.bindWallet(walletAddress);
+    if (res.success) {
+      localStorage.setItem('token', res.data.token);
+      setUser(res.data.user);
+    }
+  };
+
   return (
     <I18nProvider>
-      <AppContext.Provider value={{ user, setUser, login, loginWithEmail, logout, loading }}>
+      <AppContext.Provider value={{ user, setUser, login, loginWithEmail, bindWallet, logout, loading }}>
         {children}
       </AppContext.Provider>
     </I18nProvider>

@@ -159,6 +159,12 @@ export const api = {
   getMe: () =>
     fetchAPI<ApiResponse<User>>('/auth/me'),
 
+  bindWallet: (walletAddress: string) =>
+    fetchAPI<ApiResponse<AuthResponse>>('/auth/bind-wallet', {
+      method: 'POST',
+      body: JSON.stringify({ walletAddress }),
+    }),
+
   // 余额
   getBalance: () =>
     fetchAPI<ApiResponse<BalanceInfo>>('/balance'),

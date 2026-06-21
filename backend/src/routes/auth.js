@@ -357,4 +357,61 @@ router.get('/twitter/callback', async (req, res) => {
   }
 });
 
+// ────────────────────────────────────────
+// 绑定钱包（X/邮箱用户绑定 Polygon 钱包）
+// ────────────────────────────────────────
+router.post('/bind-wallet', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ success: false, error: '请先登录' });
+    }
+
+    const decoded = jwt.verify(token, config.jwtSecret);
+    const userId = decoded.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Token 无效' });
+    }
+
+    const { walletAddress } = req.body;
+    if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+      return res.status(400).json({ success: false, error: '无效的钱包地址' });
+    }
+
+    const addr = walletAddress.toLowerCase();
+
+    // 检查该钱包是否已被其他用户绑定
+    const existingWallet = await prisma.user.findUnique({ where: { walletAddress: addr } });
+    if (existingWallet && existingWallet.id !== userId) {
+      return res.status(409).json({ success: false, error: '该钱包地址已被其他账号绑定' });
+    }
+
+    // 检查当前用户是否已绑定钱包
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!currentUser) {
+      return res.status(404).json({ success: false, error: '用户不存在' });
+    }
+    if (currentUser.walletAddress && currentUser.walletAddress !== addr) {
+      return res.status(409).json({ success: false, error: '您已绑定了其他钱包地址' });
+    }
+
+    // 绑定钱包
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { walletAddress: addr },
+    });
+
+    const newToken = signToken(user);
+    logger.info({ userId, walletAddress: addr }, '用户绑定钱包成功');
+
+    res.json({
+      success: true,
+      data: { token: newToken, user: serializeUser(user) },
+    });
+  } catch (err) {
+    console.error('[auth/bind-wallet] 错误:', err.message);
+    sendError(res, err);
+  }
+});
+
 module.exports = router;

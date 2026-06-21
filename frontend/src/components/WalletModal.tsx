@@ -146,8 +146,8 @@ const MOBILE_WALLETS: WalletOption[] = [
 
 // ---------- 组件 ----------
 
-export function WalletModal({ onClose }: { onClose: () => void }) {
-  const { login } = useApp();
+export function WalletModal({ onClose, mode = 'login' }: { onClose: () => void; mode?: 'login' | 'bind' }) {
+  const { login, bindWallet } = useApp();
   const { t } = useTranslation();
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
@@ -192,7 +192,11 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
     if (!/^0x[a-fA-F0-9]{40}$/.test(address.trim())) { setError(t('wallet.invalidAddress')); return; }
     setLoading(true); setError('');
     try {
-      await login(address.trim());
+      if (mode === 'bind') {
+        await bindWallet(address.trim());
+      } else {
+        await login(address.trim());
+      }
       onClose();
     } catch (err: any) {
       setError(err.message || t('wallet.connectFailed'));
@@ -237,7 +241,7 @@ export function WalletModal({ onClose }: { onClose: () => void }) {
       >
         {/* 标题 */}
         <div className="flex items-center justify-between mb-5 shrink-0">
-          <h2 id="wallet-modal-title" className="text-lg font-bold">{t('wallet.title')}</h2>
+          <h2 id="wallet-modal-title" className="text-lg font-bold">{mode === 'bind' ? t('wallet.bindTitle') : t('wallet.title')}</h2>
           <button
             ref={closeRef}
             onClick={onClose}

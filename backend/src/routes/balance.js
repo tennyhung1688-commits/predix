@@ -13,7 +13,7 @@ const router = express.Router();
 // 获取余额
 router.get('/balance', requireAuth, async (req, res) => {
   try {
-    const balance = await balanceService.getBalance(req.user.walletAddress);
+    const balance = await balanceService.getBalance({ userId: req.user.id });
     res.json({ success: true, data: balance });
   } catch (err) {
     sendError(res, err);
@@ -23,13 +23,17 @@ router.get('/balance', requireAuth, async (req, res) => {
 // 获取充值信息（平台钱包地址 + 新用户奖励）
 router.get('/balance/deposit-info', requireAuth, async (req, res) => {
   try {
-    const user = await balanceService.getOrCreateUser(req.user.walletAddress);
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    const hasWallet = !!user?.walletAddress;
     res.json({
       success: true,
       data: {
         platformAddress: config.platform.depositAddress,
         newUserBonus: config.platform.newUserBonus,
-        note: `转账 USDC (Polygon) 到平台地址，到账后联系客服确认。首次注册赠送 ${config.platform.newUserBonus} USDC。`,
+        hasWallet,
+        note: hasWallet
+          ? `转账 USDC (Polygon) 到平台地址，到账后联系客服确认。首次注册赠送 ${config.platform.newUserBonus} USDC。`
+          : '请先绑定 Polygon 钱包后再进行充值。',
       },
     });
   } catch (err) {
@@ -129,7 +133,7 @@ router.post('/balance/deposit/verify', requireAuth, async (req, res) => {
     }
 
     // 6. 已确认到账，自动充值
-    const deposit = await balanceService.deposit(req.user.walletAddress, txHash, amount);
+    const deposit = await balanceService.depositByUserId(req.user.id, txHash, amount);
 
     res.json({
       success: true,
@@ -167,8 +171,8 @@ router.post('/balance/deposit', requireAuth,
       return res.status(400).json({ success: false, error: '充值金额必须大于 0' });
     }
 
-    const deposit = await balanceService.deposit(
-      req.user.walletAddress,
+    const deposit = await balanceService.depositByUserId(
+      req.user.id,
       txHash,
       parseFloat(amount)
     );
@@ -196,8 +200,8 @@ router.post('/balance/withdraw', requireAuth,
       return res.status(400).json({ success: false, error: '缺少 toAddress 或 amount' });
     }
 
-    const withdraw = await balanceService.withdraw(
-      req.user.walletAddress,
+    const withdraw = await balanceService.withdrawById(
+      req.user.id,
       toAddress,
       parseFloat(amount)
     );
@@ -213,7 +217,7 @@ router.get('/balance/transactions', requireAuth, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const transactions = await balanceService.getTransactions(
-      req.user.walletAddress,
+      { userId: req.user.id },
       limit
     );
     res.json({ success: true, data: transactions });

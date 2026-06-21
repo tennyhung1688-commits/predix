@@ -113,6 +113,7 @@ export function TradingPanel({ market }: TradingPanelProps) {
 
   const canSubmit = useMemo(() => {
     if (!user || loading) return false;
+    if (!user.walletAddress) return false;
     if (isMarket) return !!(tokenId && numShares > 0);
     return !!(tokenId && numShares > 0 && numPrice > 0 && numPrice < 1);
   }, [user, loading, isMarket, tokenId, numShares, numPrice]);
@@ -440,7 +441,7 @@ export function TradingPanel({ market }: TradingPanelProps) {
               : 'bg-[var(--gradient-sell)] hover:shadow-[var(--shadow-glow-red)] text-white'
           } disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:shadow-none`}
         >
-          {!user ? t('trade.connectFirst') : loading ? (
+          {!user ? t('trade.connectFirst') : !user.walletAddress ? t('trade.bindWalletFirst') : loading ? (
             <span className="flex items-center justify-center gap-2">
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" className="opacity-30" />
@@ -454,6 +455,11 @@ export function TradingPanel({ market }: TradingPanelProps) {
         {!user && (
           <p className="text-xs text-center text-[var(--text-muted)]">
             {t('trade.connectHint')}
+          </p>
+        )}
+        {user && !user.walletAddress && (
+          <p className="text-xs text-center text-[var(--text-muted)]">
+            {t('trade.bindWalletHint')}
           </p>
         )}
       </div>
