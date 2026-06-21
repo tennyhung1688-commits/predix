@@ -322,7 +322,14 @@ export function TradingPanel({ market }: TradingPanelProps) {
           {t('orders.colType')}
         </label>
         <div className="grid grid-cols-2 gap-1.5">
-          {ORDER_TYPE_OPTIONS.map(opt => (
+          {ORDER_TYPE_OPTIONS.filter(opt => {
+            // 市价单只支持 FOK 和 FAK
+            if (orderMode === 'market') {
+              return opt.value === 'FOK' || opt.value === 'FAK';
+            }
+            // 限价单支持所有类型
+            return true;
+          }).map(opt => (
             <button
               key={opt.value}
               onClick={() => setOrderType(opt.value as any)}
