@@ -9,6 +9,31 @@ import { useGameStats } from '@/hooks/useGameStats';
 import { useTranslation } from '@/i18n/I18nProvider';
 import type { Achievement } from '@/types';
 
+// 订单状态样式
+function getStatusBadgeClass(status: string): string {
+  switch (status) {
+    case 'pending': return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
+    case 'live': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+    case 'matched': return 'bg-green-500/10 text-green-400 border border-green-500/20';
+    case 'filled': return 'bg-green-500/10 text-green-400 border border-green-500/20';
+    case 'cancelled': return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
+    case 'failed': return 'bg-red-500/10 text-red-400 border border-red-500/20';
+    default: return 'bg-gray-500/10 text-gray-400 border border-gray-500/20';
+  }
+}
+
+function getStatusLabel(status: string, t: (key: string) => string): string {
+  switch (status) {
+    case 'pending': return t('orders.statusPending');
+    case 'live': return t('orders.statusLive');
+    case 'matched': return t('orders.statusMatched');
+    case 'filled': return t('orders.statusFilled');
+    case 'cancelled': return t('orders.statusCancelled');
+    case 'failed': return t('orders.statusFailed');
+    default: return status;
+  }
+}
+
 // 稀有度样式
 const RARITY_STYLES: Record<string, { border: string; glow: string; badge: string; labelZh: string; labelEn: string }> = {
   common:    { border: 'border-gray-500/30', glow: 'rgba(156,163,175,0.3)', badge: 'bg-gray-500/15 text-gray-400', labelZh: '普通', labelEn: 'Common' },
@@ -66,9 +91,25 @@ export default function OrdersPage() {
   const { user } = useApp();
   const { t, locale } = useTranslation();
   const [activeSubTab, setActiveSubTab] = useState<'orders' | 'positions'>('orders');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
   const [orders, setOrders] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // 订单状态筛选
+  const statusOptions = [
+    { value: 'all', label: t('orders.statusAll') },
+    { value: 'pending', label: t('orders.statusPending') },
+    { value: 'filled', label: t('orders.statusFilled') },
+    { value: 'cancelled', label: t('orders.statusCancelled') },
+    { value: 'failed', label: t('orders.statusFailed') },
+  ];
+
+  // 过滤订单
+  const filteredOrders = useMemo(() => {
+    if (orderStatusFilter === 'all') return orders;
+    return orders.filter((o: any) => o.status === orderStatusFilter);
+  }, [orders, orderStatusFilter]);
 
   useEffect(() => {
     if (!user) return;
@@ -289,7 +330,7 @@ export default function OrdersPage() {
       )}
 
       {/* 标签切换 */}
-      <div className="flex gap-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-1 mb-6 w-fit">
+      <div className="flex flex-wrap gap-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-1 mb-6 w-fit">
         {[
           { id: 'orders', label: `📝 ${t('orders.tabOrders')}` },
           { id: 'positions', label: `💎 ${t('orders.tabPositions')}` },
@@ -308,6 +349,30 @@ export default function OrdersPage() {
         ))}
       </div>
 
+      {/* 订单状态筛选 */}
+      {activeSubTab === 'orders' && (
+        <div className="flex gap-1 mb-4 flex-wrap">
+          {statusOptions.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setOrderStatusFilter(opt.value)}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                orderStatusFilter === opt.value
+                  ? 'bg-[var(--bg-card)] border border-[var(--accent-blue)]/30 text-[var(--accent-blue)]'
+                  : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              {opt.label}
+              {opt.value !== 'all' && (
+                <span className="ml-1 opacity-60">
+                  ({orders.filter((o: any) => o.status === opt.value).length})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* 内容区域 */}
       {loading ? (
         <div className="space-y-3">
@@ -322,11 +387,15 @@ export default function OrdersPage() {
         <>
           {activeSubTab === 'orders' && (
             <>
-              {orders.length === 0 ? (
+              {filteredOrders.length === 0 ? (
                 <div className="text-center py-20">
                   <div className="text-4xl mb-4">📝</div>
-                  <h3 className="text-lg font-medium mb-2">{t('orders.noOrders')}</h3>
-                  <p className="text-sm text-[var(--text-muted)]">{t('orders.noOrdersHint')}</p>
+                  <h3 className="text-lg font-medium mb-2">
+                    {orderStatusFilter === 'all' ? t('orders.noOrders') : t('orders.noOrdersWithFilter')}
+                  </h3>
+                  <p className="text-sm text-[var(--text-muted)]">
+                    {orderStatusFilter === 'all' ? t('orders.noOrdersHint') : t('orders.noOrdersWithFilterHint')}
+                  </p>
                 </div>
               ) : (
                 <>
@@ -339,66 +408,93 @@ export default function OrdersPage() {
                           <th className="pb-3 font-medium text-right">{t('dashboard.colDirection')}</th>
                           <th className="pb-3 font-medium text-right">{t('dashboard.colSize')}</th>
                           <th className="pb-3 font-medium text-right">{t('dashboard.colPrice')}</th>
+                          <th className="pb-3 font-medium text-right">{t('orders.colStatus')}</th>
                           <th className="pb-3 font-medium text-right">{t('dashboard.colTime')}</th>
-                          <th className="pb-3 font-medium text-right">{t('orders.cancel')}</th>
+                          <th className="pb-3 font-medium text-right">{t('orders.actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {orders.map((order: any) => (
-                          <tr key={order.id} className="border-b border-[var(--border)]/50 hover:bg-[var(--bg-hover)]">
-                            <td className="py-3 max-w-[200px] truncate">{order.title || order.market || order.id}</td>
-                            <td className="py-3 text-right">
-                              <span className={`text-xs ${order.side === 'BUY' ? 'text-[var(--green)]' : 'text-[var(--red)]'}`}>
-                                {order.side === 'BUY' ? t('dashboard.buy') : t('dashboard.sell')}
-                              </span>
-                            </td>
-                            <td className="py-3 text-right tabular-nums">{parseFloat(order.size || '0').toLocaleString()}</td>
-                            <td className="py-3 text-right tabular-nums">{formatPrice(order.price || '0')}</td>
-                            <td className="py-3 text-right text-xs text-[var(--text-muted)]">
-                              {timeAgo(order.created_at || order.timestamp, locale === 'en' ? 'en' : 'zh')}
-                            </td>
-                            <td className="py-3 text-right">
-                              <button
-                                onClick={() => handleCancel(order.id)}
-                                className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                              >
-                                {t('orders.cancel')}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredOrders.map((order: any) => {
+                          const canCancel = order.status === 'pending' || order.status === 'live';
+                          return (
+                            <tr key={order.id} className="border-b border-[var(--border)]/50 hover:bg-[var(--bg-hover)]">
+                              <td className="py-3 max-w-[200px] truncate">{order.title || order.market || order.id}</td>
+                              <td className="py-3 text-right">
+                                <span className={`text-xs ${order.side === 'BUY' ? 'text-[var(--green)]' : 'text-[var(--red)]'}`}>
+                                  {order.side === 'BUY' ? t('dashboard.buy') : t('dashboard.sell')}
+                                </span>
+                              </td>
+                              <td className="py-3 text-right tabular-nums">{parseFloat(order.size || '0').toLocaleString()}</td>
+                              <td className="py-3 text-right tabular-nums">{formatPrice(order.price || order.originalPrice || '0')}</td>
+                              <td className="py-3 text-right">
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusBadgeClass(order.status)}`}>
+                                  {getStatusLabel(order.status, t)}
+                                </span>
+                              </td>
+                              <td className="py-3 text-right text-xs text-[var(--text-muted)]">
+                                {timeAgo(order.created_at || order.timestamp || order.createdAt, locale === 'en' ? 'en' : 'zh')}
+                              </td>
+                              <td className="py-3 text-right">
+                                {canCancel ? (
+                                  <button
+                                    onClick={() => handleCancel(order.id)}
+                                    className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                  >
+                                    {t('orders.cancel')}
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-[var(--text-muted)]">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
 
                   {/* 移动端：卡片布局 */}
                   <div className="md:hidden space-y-2">
-                    {orders.map((order: any) => (
-                      <div key={order.id} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3 active:bg-[var(--bg-hover)] transition-colors">
-                        {/* 第一行：市场名 + 方向 */}
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-[var(--text-primary)] truncate max-w-[65%]">
-                            {order.title || order.market || order.id}
-                          </span>
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${order.side === 'BUY' ? 'bg-green-500/10 text-[var(--green)]' : 'bg-red-500/10 text-[var(--red)]'}`}>
-                            {order.side === 'BUY' ? t('dashboard.buy') : t('dashboard.sell')}
-                          </span>
+                    {filteredOrders.map((order: any) => {
+                      const canCancel = order.status === 'pending' || order.status === 'live';
+                      return (
+                        <div key={order.id} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3 active:bg-[var(--bg-hover)] transition-colors">
+                          {/* 第一行：市场名 + 方向 */}
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-[var(--text-primary)] truncate max-w-[65%]">
+                              {order.title || order.market || order.id}
+                            </span>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${order.side === 'BUY' ? 'bg-green-500/10 text-[var(--green)]' : 'bg-red-500/10 text-[var(--red)]'}`}>
+                              {order.side === 'BUY' ? t('dashboard.buy') : t('dashboard.sell')}
+                            </span>
+                          </div>
+                          {/* 第二行：数量 / 价格 / 状态 */}
+                          <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] mb-2">
+                            <span>{t('dashboard.colSize')}: <span className="text-[var(--text-secondary)] tabular-nums">{parseFloat(order.size || '0').toLocaleString()}</span></span>
+                            <span>{t('dashboard.colPrice')}: <span className="text-[var(--text-secondary)] tabular-nums">{formatPrice(order.price || order.originalPrice || '0')}</span></span>
+                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${getStatusBadgeClass(order.status)}`}>
+                              {getStatusLabel(order.status, t)}
+                            </span>
+                          </div>
+                          {/* 第三行：时间 + 取消按钮 */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-[var(--text-muted)]">
+                              {timeAgo(order.created_at || order.timestamp || order.createdAt, locale === 'en' ? 'en' : 'zh')}
+                            </span>
+                            {canCancel ? (
+                              <button
+                                onClick={() => handleCancel(order.id)}
+                                className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                              >
+                                {t('orders.cancel')}
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-[var(--text-muted)]">—</span>
+                            )}
+                          </div>
                         </div>
-                        {/* 第二行：数量 / 价格 / 时间 */}
-                        <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] mb-2">
-                          <span>{t('dashboard.colSize')}: <span className="text-[var(--text-secondary)] tabular-nums">{parseFloat(order.size || '0').toLocaleString()}</span></span>
-                          <span>{t('dashboard.colPrice')}: <span className="text-[var(--text-secondary)] tabular-nums">{formatPrice(order.price || '0')}</span></span>
-                          <span className="ml-auto">{timeAgo(order.created_at || order.timestamp, locale === 'en' ? 'en' : 'zh')}</span>
-                        </div>
-                        {/* 取消按钮 */}
-                        <button
-                          onClick={() => handleCancel(order.id)}
-                          className="w-full text-xs py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                        >
-                          {t('orders.cancel')}
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               )}

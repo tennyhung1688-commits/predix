@@ -22,6 +22,7 @@ interface TradingPanelProps {
 export function TradingPanel({ market }: TradingPanelProps) {
   const { user } = useApp();
   const { t, locale } = useTranslation();
+  const [balance, setBalance] = useState<any>(null);
 
   // ---- 核心状态 ----
   const [selectedOutcome, setSelectedOutcome] = useState<number>(0); // 0=Yes, 1=No
@@ -72,6 +73,13 @@ export function TradingPanel({ market }: TradingPanelProps) {
         }).catch(() => {});
     }
   }, [tokenId]);
+
+  // ---- 获取用户余额 ----
+  useEffect(() => {
+    if (user) {
+      api.getBalance().then((res: any) => setBalance(res.data)).catch(() => {});
+    }
+  }, [user]);
 
   // ---- 当前选中结果的价格 ----
   const currentPrice = prices[selectedOutcome] || 0;
@@ -194,6 +202,18 @@ export function TradingPanel({ market }: TradingPanelProps) {
         <div className="px-4 py-1.5 text-[10px] text-center bg-[var(--accent-amber)]/10 text-[var(--accent-amber)] border-b border-[var(--accent-amber)]/20 flex items-center justify-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-amber)] animate-pulse" />
           {t('trade.demoWarning')}
+        </div>
+      )}
+
+      {/* 余额显示 */}
+      {user && balance && (
+        <div className="px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-secondary)]/30">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-[var(--text-muted)]">{t('trade.availableBalance')}</span>
+            <span className="font-mono font-medium text-[var(--text-primary)]">
+              ${((balance.balance || 0) - (balance.lockedBalance || 0)).toFixed(2)} USDC
+            </span>
+          </div>
         </div>
       )}
 
@@ -379,6 +399,21 @@ export function TradingPanel({ market }: TradingPanelProps) {
               className="w-full h-9 px-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] text-sm text-center font-mono focus:outline-none focus:border-[var(--accent-blue)] focus:shadow-[0_0_10px_rgba(79,143,255,0.1)] transition-all"
             />
           </div>
+          {/* 最大按钮 */}
+          {user && balance && (
+            <button
+              onClick={() => {
+                const available = (balance.balance || 0) - (balance.lockedBalance || 0);
+                const maxShares = side === 'BUY' 
+                  ? Math.floor(available / ((numPrice || currentPrice) * (1 + feeRate)))
+                  : 100; // 简化处理：卖出时默认100
+                setShares(String(Math.max(1, maxShares)));
+              }}
+              className="mt-1.5 text-[10px] px-2 py-0.5 rounded bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] hover:bg-[var(--accent-blue)]/20 transition-colors"
+            >
+              {t('trade.max')}
+            </button>
+          )}
           {/* 快捷调整按钮 */}
           <div className="flex gap-1 mt-2">
             {[-100, -10, 10, 100].map(delta => (
