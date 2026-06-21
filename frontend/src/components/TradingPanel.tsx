@@ -150,13 +150,18 @@ export function TradingPanel({ market }: TradingPanelProps) {
     if (!user) return;
     setLoading(true);
     try {
+      // 订单类型映射：限价单直接用，市价单加 MARKET_ 前缀
+      const orderTypeForAPI = isMarket 
+        ? `MARKET_${orderType === 'FOK' ? 'FOK' : 'FAK'}` 
+        : orderType;
+      
       const payload: any = {
         tokenId,
         side,
         outcomeIndex: selectedOutcome,
         tags: marketTags,
         idempotencyKey: crypto.randomUUID(),
-        orderType: isMarket ? `MARKET_${orderType}` : orderType,
+        orderType: orderTypeForAPI,
       };
       if (isMarket) {
         payload.amount = numShares;
