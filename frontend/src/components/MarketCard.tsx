@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { formatVolume, formatPercent, countdown, getProbabilityColor } from '@/lib/utils';
 import { useTranslation } from '@/i18n/I18nProvider';
@@ -33,7 +32,6 @@ const CATEGORY_EMOJI: Record<string, string> = {
 
 export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const { t, locale } = useTranslation();
-  const [imgError, setImgError] = useState(false);
 
   const rawOutcomes = safeParseJson(
     locale === 'zh'
@@ -53,9 +51,24 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const category = tags[0]?.label || '';
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
-  // Cover image — Picsum with market ID as seed (consistent per market, never repeats)
-  const imageSeed = market.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || Math.random().toString(36).slice(2, 8);
-  const imageUrl = `https://picsum.photos/seed/${imageSeed}/800/450`;
+  // Deterministic random from market ID (0-99)
+  const seedNum = parseInt(market.id || '0', 10) % 100;
+
+  // Category-based color scheme
+  const categoryColors: Record<string, { bg: string; accent: string; emoji: string }> = {
+    sports: { bg: '#064e3b', accent: '#34d399', emoji: '⚽' },
+    politics: { bg: '#1e3a5f', accent: '#60a5fa', emoji: '🏛️' },
+    crypto: { bg: '#78350f', accent: '#f59e0b', emoji: '₿' },
+    technology: { bg: '#3b0764', accent: '#a78bfa', emoji: '🔬' },
+    science: { bg: '#0c4a6e', accent: '#22d3ee', emoji: '🔭' },
+    entertainment: { bg: '#4c0519', accent: '#f43f5e', emoji: '🎬' },
+    world: { bg: '#172554', accent: '#38bdf8', emoji: '🌍' },
+    economy: { bg: '#1c1917', accent: '#a8a29e', emoji: '📊' },
+    business: { bg: '#1c1917', accent: '#a8a29e', emoji: '💼' },
+  };
+  const colors = categoryColors[categorySlug] || categoryColors.sports;
+  const geoAngle = (seedNum * 37) % 360;
+  const geoOffset = (seedNum * 13) % 80;
 
   // Premium gradient fallback per category
   const fallbackGradients: Record<string, string> = {
@@ -72,29 +85,34 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
 
   const cardContent = (
     <>
-      {/* Cover image */}
-      <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-[var(--bg-secondary)]">
-        {!imgError ? (
-          <img
-            src={imageUrl}
-            alt={question}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className={`h-full w-full bg-gradient-to-br ${fallbackGradient}`}>
-            {/* Geometric decoration when image fails */}
-            <div className="absolute inset-0 opacity-[0.06]">
-              <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full border border-white/30" />
-              <div className="absolute bottom-1/3 right-1/4 w-24 h-24 rounded-full border border-white/20" />
-              <div className="absolute top-1/2 left-1/3 w-40 h-0.5 bg-white/20 rotate-12" />
-            </div>
-          </div>
-        )}
+      {/* Cover image — SVG generated, zero external dependency */}
+      <div className="relative w-full h-36 sm:h-40 overflow-hidden" style={{ backgroundColor: colors.bg }}>
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice">
+          {/* Diagonal stripes */}
+          <defs>
+            <pattern id={`stripe-${market.id}`} patternUnits="userSpaceOnUse" width="60" height="60" patternTransform={`rotate(${geoAngle})`}>
+              <rect width="30" height="60" fill={colors.accent} opacity="0.08" />
+            </pattern>
+            <linearGradient id={`grad-${market.id}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={colors.accent} stopOpacity="0.15" />
+              <stop offset="100%" stopColor={colors.accent} stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          <rect width="800" height="450" fill="url(#stripe-{market.id})" />
+          <rect width="800" height="450" fill={`url(#grad-${market.id})`} />
+          {/* Decorative circles */}
+          <circle cx={150 + geoOffset * 2} cy={120 + geoOffset} r={80 + (seedNum % 40)} fill={colors.accent} opacity="0.06" />
+          <circle cx={650 - geoOffset} cy={350 - geoOffset} r={60 + (seedNum % 50)} fill={colors.accent} opacity="0.04" />
+          {seedNum % 3 === 0 && <circle cx={400} cy={225} r={180} fill="none" stroke={colors.accent} strokeWidth="1" opacity="0.06" />}
+          {/* Center emoji */}
+          <text x="400" y="235" textAnchor="middle" fontSize="64" opacity="0.5" filter="url(#blur)">
+            {CATEGORY_EMOJI[categorySlug] || '📊'}
+          </text>
+          <filter id="blur"><feGaussianBlur in="SourceGraphic" stdDeviation="0.5" /></filter>
+        </svg>
 
-        {/* Gradient overlay - bottom fade */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+        {/* Gradient overlay - bottom fade for title readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         {/* Top fade for badges */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
 
@@ -110,7 +128,7 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
         {/* Category badge */}
         {category && (
           <div className="absolute top-3 left-3 z-10">
-            <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-sm text-[var(--bg-primary)] font-semibold shadow-sm">
+            <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-sm text-gray-900 font-semibold shadow-sm">
               {CATEGORY_EMOJI[categorySlug] || '📊'} {category}
             </span>
           </div>
@@ -128,7 +146,7 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
           </div>
         )}
 
-        {/* Title on image */}
+        {/* Title on cover */}
         <div className="absolute bottom-3 left-3 right-3 z-10">
           <h3 className="text-sm font-semibold leading-snug line-clamp-2 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] group-hover:text-white/90 transition-colors duration-200 font-display">
             {question}
