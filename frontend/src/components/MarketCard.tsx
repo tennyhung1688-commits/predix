@@ -52,8 +52,6 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
   // Deterministic random from market ID (0-99)
-  const seedNum = parseInt(market.id || '0', 10) % 100;
-
   // Category-based color scheme
   const categoryColors: Record<string, { bg: string; accent: string; emoji: string }> = {
     sports: { bg: '#064e3b', accent: '#34d399', emoji: '⚽' },
@@ -67,8 +65,60 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
     business: { bg: '#1c1917', accent: '#a8a29e', emoji: '💼' },
   };
   const colors = categoryColors[categorySlug] || categoryColors.sports;
-  const geoAngle = (seedNum * 37) % 360;
-  const geoOffset = (seedNum * 13) % 80;
+  const seedNum = parseInt(market.id || '0', 10) % 100;
+  const patternType = seedNum % 4; // 0=stripes, 1=dots, 2=rings, 3=waves
+  const r1 = (seedNum * 17) % 360;
+  const r2 = (seedNum * 41) % 360;
+  const cx1 = 100 + (seedNum * 7) % 300;
+  const cy1 = 80 + (seedNum * 11) % 200;
+  const cx2 = 400 + (seedNum * 13) % 250;
+  const cy2 = 250 + (seedNum * 19) % 150;
+  const emojiX = 140 + (seedNum * 23) % 520;
+  const emojiY = 170 + (seedNum * 31) % 150;
+  const emojiRot = (seedNum * 13) % 30 - 15;
+
+  // Build SVG pattern — 4 distinct styles for variety
+  const svgPattern = (() => {
+    switch (patternType) {
+      case 0: // Diagonal stripes
+        return (
+          <pattern id={`p-${market.id}`} patternUnits="userSpaceOnUse" width="80" height="80" patternTransform={`rotate(${r1})`}>
+            <rect width="30" height="80" fill={colors.accent} opacity="0.07" />
+          </pattern>
+        );
+      case 1: // Dot grid
+        return (
+          <pattern id={`p-${market.id}`} patternUnits="userSpaceOnUse" width="50" height="50" patternTransform={`rotate(${r1 % 45})`}>
+            <circle cx="25" cy="25" r={6 + (seedNum % 5)} fill={colors.accent} opacity="0.08" />
+          </pattern>
+        );
+      case 2: // Concentric rings
+        return null; // handled inline
+      default: // Diagonal crosshatch (waves feel)
+        return (
+          <pattern id={`p-${market.id}`} patternUnits="userSpaceOnUse" width="100" height="60" patternTransform={`rotate(${r1})`}>
+            <path d="M0,30 Q50,0 100,30" fill="none" stroke={colors.accent} strokeWidth="2" opacity="0.06" />
+          </pattern>
+        );
+    }
+  })();
+
+  // SVG body
+  const svgBody = patternType === 2 ? (
+    // Concentric rings
+    <>
+      {[0, 1, 2, 3].map(i => (
+        <circle key={i} cx={400 + (i % 2 ? 100 : -100)} cy={225 + (i > 1 ? 80 : -80)} r={120 + i * 40} fill="none" stroke={colors.accent} strokeWidth={1 + i} opacity={0.06 - i * 0.01} />
+      ))}
+    </>
+  ) : (
+    <>
+      <rect width="800" height="450" fill={`url(#p-${market.id})`} />
+      {/* Decorative blobs */}
+      <circle cx={cx1} cy={cy1} r={50 + (seedNum % 60)} fill={colors.accent} opacity="0.05" />
+      <circle cx={cx2} cy={cy2} r={30 + (seedNum % 50)} fill={colors.accent} opacity="0.07" />
+    </>
+  );
 
   // Premium gradient fallback per category
   const fallbackGradients: Record<string, string> = {
@@ -88,27 +138,19 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
       {/* Cover image — SVG generated, zero external dependency */}
       <div className="relative w-full h-36 sm:h-40 overflow-hidden" style={{ backgroundColor: colors.bg }}>
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice">
-          {/* Diagonal stripes */}
           <defs>
-            <pattern id={`stripe-${market.id}`} patternUnits="userSpaceOnUse" width="60" height="60" patternTransform={`rotate(${geoAngle})`}>
-              <rect width="30" height="60" fill={colors.accent} opacity="0.08" />
-            </pattern>
+            {svgPattern}
             <linearGradient id={`grad-${market.id}`} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor={colors.accent} stopOpacity="0.15" />
-              <stop offset="100%" stopColor={colors.accent} stopOpacity="0.02" />
+              <stop offset="0%" stopColor={colors.accent} stopOpacity="0.12" />
+              <stop offset="100%" stopColor={colors.accent} stopOpacity="0.0" />
             </linearGradient>
           </defs>
-          <rect width="800" height="450" fill="url(#stripe-{market.id})" />
+          {svgBody}
           <rect width="800" height="450" fill={`url(#grad-${market.id})`} />
-          {/* Decorative circles */}
-          <circle cx={150 + geoOffset * 2} cy={120 + geoOffset} r={80 + (seedNum % 40)} fill={colors.accent} opacity="0.06" />
-          <circle cx={650 - geoOffset} cy={350 - geoOffset} r={60 + (seedNum % 50)} fill={colors.accent} opacity="0.04" />
-          {seedNum % 3 === 0 && <circle cx={400} cy={225} r={180} fill="none" stroke={colors.accent} strokeWidth="1" opacity="0.06" />}
-          {/* Center emoji */}
-          <text x="400" y="235" textAnchor="middle" fontSize="64" opacity="0.5" filter="url(#blur)">
+          {/* Emoji at randomized position */}
+          <text x={emojiX} y={emojiY} textAnchor="middle" fontSize="72" opacity="0.35" transform={`rotate(${emojiRot} ${emojiX} ${emojiY})`}>
             {CATEGORY_EMOJI[categorySlug] || '📊'}
           </text>
-          <filter id="blur"><feGaussianBlur in="SourceGraphic" stdDeviation="0.5" /></filter>
         </svg>
 
         {/* Gradient overlay - bottom fade for title readability */}
