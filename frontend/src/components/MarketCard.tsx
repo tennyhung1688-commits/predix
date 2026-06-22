@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { formatVolume, formatPercent, countdown, getProbabilityColor } from '@/lib/utils';
 import { useTranslation } from '@/i18n/I18nProvider';
@@ -52,39 +51,69 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const category = tags[0]?.label || '';
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
-  // Pure random photo — no keyword, one seed per market ensures variety
-  const imageUrl = `https://loremflickr.com/800/450?lock=${market.id || 1}`;
+  // ── Gradient Cover 2.0 ──
+  // Each market gets a unique dual-tone gradient from its ID hash
+  const hash = [...(market.id || '0')].reduce((s, c) => s + c.charCodeAt(0), 0);
+  const categoryHueBase: Record<string, number> = {
+    sports: 150, politics: 210, crypto: 40, technology: 270,
+    science: 190, entertainment: 330, world: 200, economy: 30, business: 30,
+  };
+  const hueBase = categoryHueBase[categorySlug] || (hash * 7) % 360;
+  const hue1 = hueBase + (hash % 40) - 20;
+  const hue2 = hue1 + (hash % 60) - 30;
+  const sat = 60 + (hash % 30);
+  const light = 16 + (hash % 10);
+  const color1 = `hsl(${hue1},${sat}%,${light}%)`;
+  const color2 = `hsl(${hue2},${sat - 10}%,${light + 6}%)`;
+  const accent = `hsl(${hue1},${sat + 20}%,${light + 25}%)`;
 
-  // Premium gradient fallback per category (image load failure)
-  const fallbackGradient = (() => {
-    const g: Record<string, string> = {
-      sports: 'from-emerald-900/80 via-emerald-800/40 to-[var(--bg-secondary)]',
-      politics: 'from-blue-900/80 via-indigo-800/40 to-[var(--bg-secondary)]',
-      crypto: 'from-amber-900/80 via-orange-800/40 to-[var(--bg-secondary)]',
-      technology: 'from-purple-900/80 via-violet-800/40 to-[var(--bg-secondary)]',
-      entertainment: 'from-pink-900/80 via-rose-800/40 to-[var(--bg-secondary)]',
-      world: 'from-sky-900/80 via-blue-800/40 to-[var(--bg-secondary)]',
-      business: 'from-slate-900/80 via-zinc-800/40 to-[var(--bg-secondary)]',
-    };
-    return g[categorySlug] || 'from-[var(--accent-blue)]/20 via-[var(--accent-purple)]/10 to-[var(--bg-secondary)]';
-  })();
-  const [imgError, setImgError] = useState(false);
+  const pattern = hash % 4; // 0=stripes, 1=dots, 2=waves, 3=rings
+  const angle = (hash * 37) % 360;
+  const emoji = CATEGORY_EMOJI[categorySlug] || '📊';
 
   const cardContent = (
     <>
-      {/* Cover image — loremflickr (random real photos by keyword) */}
-      <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-[var(--bg-secondary)]">
-        {!imgError ? (
-          <img
-            src={imageUrl}
-            alt={question}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className={`h-full w-full bg-gradient-to-br ${fallbackGradient}`} />
-        )}
+      {/* Cover — dual-tone gradient with per-card geometry */}
+      <div className="relative w-full h-36 sm:h-40 overflow-hidden">
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id={`g-${market.id}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={color1} />
+              <stop offset="100%" stopColor={color2} />
+            </linearGradient>
+            {pattern === 0 && (
+              <pattern id={`p-${market.id}`} patternUnits="userSpaceOnUse" width="60" height="60" patternTransform={`rotate(${angle})`}>
+                <rect width="24" height="60" fill="white" opacity="0.04" />
+              </pattern>
+            )}
+            {pattern === 1 && (
+              <pattern id={`p-${market.id}`} patternUnits="userSpaceOnUse" width="44" height="44">
+                <circle cx="22" cy="22" r={5 + (hash % 4)} fill="white" opacity="0.05" />
+              </pattern>
+            )}
+            {pattern === 3 && (
+              <pattern id={`p-${market.id}`} patternUnits="userSpaceOnUse" width="90" height="50" patternTransform={`rotate(${angle % 30})`}>
+                <path d="M0,25 Q45,-10 90,25" fill="none" stroke="white" strokeWidth="1.5" opacity="0.05" />
+              </pattern>
+            )}
+          </defs>
+          <rect width="800" height="450" fill={`url(#g-${market.id})`} />
+          {pattern !== 2 && <rect width="800" height="450" fill={`url(#p-${market.id})`} />}
+          {pattern === 2 && (
+            <>
+              <circle cx={200 + (hash % 200)} cy={180 + (hash % 100)} r={100} fill="none" stroke="white" strokeWidth="2" opacity="0.05" />
+              <circle cx={550 - (hash % 200)} cy={280 - (hash % 100)} r={70} fill="none" stroke="white" strokeWidth="1" opacity="0.04" />
+            </>
+          )}
+          {/* Emoji watermark */}
+          <text x={400 + (hash % 200) - 100} y={240 + (hash % 80) - 40} textAnchor="middle" fontSize="80" opacity="0.18" fill={accent}>
+            {emoji}
+          </text>
+        </svg>
+
+        {/* Gradient overlay - bottom fade for title readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
 
         {/* Gradient overlay - bottom fade for title readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
