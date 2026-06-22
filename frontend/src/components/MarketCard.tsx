@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { formatVolume, formatPercent, countdown, getProbabilityColor } from '@/lib/utils';
 import { useTranslation } from '@/i18n/I18nProvider';
@@ -51,107 +52,45 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const category = tags[0]?.label || '';
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
-  // Deterministic random from market ID (0-99)
-  // Category-based color scheme
-  const categoryColors: Record<string, { bg: string; accent: string; emoji: string }> = {
-    sports: { bg: '#064e3b', accent: '#34d399', emoji: '⚽' },
-    politics: { bg: '#1e3a5f', accent: '#60a5fa', emoji: '🏛️' },
-    crypto: { bg: '#78350f', accent: '#f59e0b', emoji: '₿' },
-    technology: { bg: '#3b0764', accent: '#a78bfa', emoji: '🔬' },
-    science: { bg: '#0c4a6e', accent: '#22d3ee', emoji: '🔭' },
-    entertainment: { bg: '#4c0519', accent: '#f43f5e', emoji: '🎬' },
-    world: { bg: '#172554', accent: '#38bdf8', emoji: '🌍' },
-    economy: { bg: '#1c1917', accent: '#a8a29e', emoji: '📊' },
-    business: { bg: '#1c1917', accent: '#a8a29e', emoji: '💼' },
-  };
-  const colors = categoryColors[categorySlug] || categoryColors.sports;
-  const seedNum = parseInt(market.id || '0', 10) % 100;
-  const patternType = seedNum % 4; // 0=stripes, 1=dots, 2=rings, 3=waves
-  const r1 = (seedNum * 17) % 360;
-  const r2 = (seedNum * 41) % 360;
-  const cx1 = 100 + (seedNum * 7) % 300;
-  const cy1 = 80 + (seedNum * 11) % 200;
-  const cx2 = 400 + (seedNum * 13) % 250;
-  const cy2 = 250 + (seedNum * 19) % 150;
-  const emojiX = 140 + (seedNum * 23) % 520;
-  const emojiY = 170 + (seedNum * 31) % 150;
-  const emojiRot = (seedNum * 13) % 30 - 15;
-
-  // Build SVG pattern — 4 distinct styles for variety
-  const svgPattern = (() => {
-    switch (patternType) {
-      case 0: // Diagonal stripes
-        return (
-          <pattern id={`p-${market.id}`} patternUnits="userSpaceOnUse" width="80" height="80" patternTransform={`rotate(${r1})`}>
-            <rect width="30" height="80" fill={colors.accent} opacity="0.07" />
-          </pattern>
-        );
-      case 1: // Dot grid
-        return (
-          <pattern id={`p-${market.id}`} patternUnits="userSpaceOnUse" width="50" height="50" patternTransform={`rotate(${r1 % 45})`}>
-            <circle cx="25" cy="25" r={6 + (seedNum % 5)} fill={colors.accent} opacity="0.08" />
-          </pattern>
-        );
-      case 2: // Concentric rings
-        return null; // handled inline
-      default: // Diagonal crosshatch (waves feel)
-        return (
-          <pattern id={`p-${market.id}`} patternUnits="userSpaceOnUse" width="100" height="60" patternTransform={`rotate(${r1})`}>
-            <path d="M0,30 Q50,0 100,30" fill="none" stroke={colors.accent} strokeWidth="2" opacity="0.06" />
-          </pattern>
-        );
-    }
+  // Build keyword for loremflickr (tags first, fallback to category)
+  const imgKeyword = (() => {
+    const labels = tags.slice(0, 2).map((t: any) => (typeof t === 'string' ? t : (t.label || ''))).filter(Boolean);
+    if (labels.length > 0) return labels.join(',');
+    if (categorySlug) return categorySlug;
+    return 'landscape';
   })();
+  const imageUrl = `https://loremflickr.com/800/450/${encodeURIComponent(imgKeyword)}?random=${market.id || 1}`;
 
-  // SVG body
-  const svgBody = patternType === 2 ? (
-    // Concentric rings
-    <>
-      {[0, 1, 2, 3].map(i => (
-        <circle key={i} cx={400 + (i % 2 ? 100 : -100)} cy={225 + (i > 1 ? 80 : -80)} r={120 + i * 40} fill="none" stroke={colors.accent} strokeWidth={1 + i} opacity={0.06 - i * 0.01} />
-      ))}
-    </>
-  ) : (
-    <>
-      <rect width="800" height="450" fill={`url(#p-${market.id})`} />
-      {/* Decorative blobs */}
-      <circle cx={cx1} cy={cy1} r={50 + (seedNum % 60)} fill={colors.accent} opacity="0.05" />
-      <circle cx={cx2} cy={cy2} r={30 + (seedNum % 50)} fill={colors.accent} opacity="0.07" />
-    </>
-  );
-
-  // Premium gradient fallback per category
-  const fallbackGradients: Record<string, string> = {
-    sports: 'from-emerald-900/80 via-emerald-800/40 to-[var(--bg-secondary)]',
-    politics: 'from-blue-900/80 via-indigo-800/40 to-[var(--bg-secondary)]',
-    crypto: 'from-amber-900/80 via-orange-800/40 to-[var(--bg-secondary)]',
-    technology: 'from-purple-900/80 via-violet-800/40 to-[var(--bg-secondary)]',
-    science: 'from-cyan-900/80 via-teal-800/40 to-[var(--bg-secondary)]',
-    entertainment: 'from-pink-900/80 via-rose-800/40 to-[var(--bg-secondary)]',
-    world: 'from-sky-900/80 via-blue-800/40 to-[var(--bg-secondary)]',
-    business: 'from-slate-900/80 via-zinc-800/40 to-[var(--bg-secondary)]',
-  };
-  const fallbackGradient = fallbackGradients[categorySlug] || 'from-[var(--accent-blue)]/20 via-[var(--accent-purple)]/10 to-[var(--bg-secondary)]';
+  // Premium gradient fallback per category (image load failure)
+  const fallbackGradient = (() => {
+    const g: Record<string, string> = {
+      sports: 'from-emerald-900/80 via-emerald-800/40 to-[var(--bg-secondary)]',
+      politics: 'from-blue-900/80 via-indigo-800/40 to-[var(--bg-secondary)]',
+      crypto: 'from-amber-900/80 via-orange-800/40 to-[var(--bg-secondary)]',
+      technology: 'from-purple-900/80 via-violet-800/40 to-[var(--bg-secondary)]',
+      entertainment: 'from-pink-900/80 via-rose-800/40 to-[var(--bg-secondary)]',
+      world: 'from-sky-900/80 via-blue-800/40 to-[var(--bg-secondary)]',
+      business: 'from-slate-900/80 via-zinc-800/40 to-[var(--bg-secondary)]',
+    };
+    return g[categorySlug] || 'from-[var(--accent-blue)]/20 via-[var(--accent-purple)]/10 to-[var(--bg-secondary)]';
+  })();
+  const [imgError, setImgError] = useState(false);
 
   const cardContent = (
     <>
-      {/* Cover image — SVG generated, zero external dependency */}
-      <div className="relative w-full h-36 sm:h-40 overflow-hidden" style={{ backgroundColor: colors.bg }}>
-        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice">
-          <defs>
-            {svgPattern}
-            <linearGradient id={`grad-${market.id}`} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor={colors.accent} stopOpacity="0.12" />
-              <stop offset="100%" stopColor={colors.accent} stopOpacity="0.0" />
-            </linearGradient>
-          </defs>
-          {svgBody}
-          <rect width="800" height="450" fill={`url(#grad-${market.id})`} />
-          {/* Emoji at randomized position */}
-          <text x={emojiX} y={emojiY} textAnchor="middle" fontSize="72" opacity="0.35" transform={`rotate(${emojiRot} ${emojiX} ${emojiY})`}>
-            {CATEGORY_EMOJI[categorySlug] || '📊'}
-          </text>
-        </svg>
+      {/* Cover image — loremflickr (random real photos by keyword) */}
+      <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-[var(--bg-secondary)]">
+        {!imgError ? (
+          <img
+            src={imageUrl}
+            alt={question}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className={`h-full w-full bg-gradient-to-br ${fallbackGradient}`} />
+        )}
 
         {/* Gradient overlay - bottom fade for title readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
