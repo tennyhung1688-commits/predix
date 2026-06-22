@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { formatVolume, formatPercent, countdown, getProbabilityColor } from '@/lib/utils';
 import { useTranslation } from '@/i18n/I18nProvider';
-import { api } from '@/lib/api';
 
 interface MarketCardProps {
   market: any;
@@ -35,7 +34,6 @@ const CATEGORY_EMOJI: Record<string, string> = {
 export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const { t, locale } = useTranslation();
   const [imgError, setImgError] = useState(false);
-  const [searchImage, setSearchImage] = useState<string | null>(null);
 
   const rawOutcomes = safeParseJson(
     locale === 'zh'
@@ -55,66 +53,9 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const category = tags[0]?.label || '';
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
-  // Build search query — add country/team names for distinction
-  const buildImageQuery = () => {
-    // Priority 1: tags + distinctive country/team names from question
-    const tagLabels = tags.slice(0, 2).map((t: any) => (typeof t === 'string' ? t : (t.label || ''))).filter(Boolean);
-    
-    // Extract proper nouns (capitalized words) from question for uniqueness
-    const properNouns = question
-      .replace(/[?¿？(),:]/g, '')
-      .split(/[\s-]+/)
-      .filter((w: string) => w.length > 2 && /^[A-Z]/.test(w)) // starts with capital = likely proper noun
-      .filter((w: string) => !['Will','The','Who','What','When','Where'].includes(w))
-      .slice(0, 2);
-    
-    // Combine: tags first, then distinctive names
-    const parts = [...new Set([...tagLabels, ...properNouns])].slice(0, 4);
-    if (parts.length > 0) return parts.join(' ');
-    
-    // Fallback: keywords with category context
-    const stopWords = new Set(['will','there','price','does','have','what','who','when','where','how','the','and','for','that','this','with','from','change','agree','confirm','increase','decrease','missed','invade','advance']);
-    const words = question
-      .replace(/[?¿？(),:]/g, '')
-      .split(/[\s-]+/)
-      .filter((w: string) => w.length > 3 && !stopWords.has(w.toLowerCase()) && !/^\d/.test(w))
-      .slice(0, 3);
-    
-    if (words.length > 0 && categorySlug === 'sports') return words.join(' ') + ' sport';
-    return words.join(' ');
-  };
-  const imageQuery = buildImageQuery();
-
-  // Fetch relevant image from Pixabay
-  useEffect(() => {
-    const q = imageQuery;
-    if (!q || searchImage !== null) return;
-    let cancelled = false;
-
-    api.getImage(q)
-      .then((res: any) => {
-        if (cancelled) return;
-        const images = res?.data || [];
-        if (images.length > 0) {
-          // Pick different image for each market: hash the ID to select from returned set
-          const idx = parseInt(market.id, 10) % images.length || 0;
-          setSearchImage(images[idx].url);
-        } else {
-          setSearchImage(''); // trigger fallback → Picsum
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setSearchImage('');
-      });
-
-    return () => { cancelled = true; };
-  }, [imageQuery, market.id]);
-
-  // Cover image priority: Pixabay > Picsum
+  // Cover image — Picsum with market ID as seed (consistent per market, never repeats)
   const imageSeed = market.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || Math.random().toString(36).slice(2, 8);
-  const picsumUrl = `https://picsum.photos/seed/${imageSeed}/800/450`;
-  // null = still loading, '' = no pixabay result → use picsum
-  const imageUrl = searchImage || picsumUrl;
+  const imageUrl = `https://picsum.photos/seed/${imageSeed}/800/450`;
 
   // Premium gradient fallback per category
   const fallbackGradients: Record<string, string> = {
