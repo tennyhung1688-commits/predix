@@ -287,6 +287,10 @@ router.get('/images/pool', async (req, res) => {
         });
         if (data.hits) {
           data.hits.forEach(h => {
+            // 排除动物 / 宠物图片
+            const tags = (h.tags || '').toLowerCase();
+            const blocked = /animal|cat|dog|bird|fish|pet|wildlife|insect|butterfly|horse|rabbit|squirrel|deer|wolf|fox|bear|lion|tiger|elephant/i;
+            if (blocked.test(tags)) return;
             images.push({ url: h.webformatURL.replace('_640', '_340'), thumb: h.previewURL, id: h.id, tags: h.tags });
           });
         }
