@@ -1,7 +1,10 @@
 const express = require('express');
+const axios = require('axios');
 const polymarketService = require('../services/polymarket');
 const { translateMarkets } = require('../services/translate');
 const { sendError } = require('../lib/errors');
+const logger = require('../lib/logger');
+const config = require('../config');
 
 const router = express.Router();
 
@@ -160,6 +163,64 @@ router.get('/markets/:tokenId/config', async (req, res) => {
   try {
     const config = await polymarketService.getMarketConfig(req.params.tokenId);
     res.json({ success: true, data: config });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// -------- 图片搜索（Pixabay + 降级） --------
+
+// 简单内存缓存（24小时）
+const imageCache = new Map();
+const CACHE_TTL = 24 * 60 * 60 * 1000;
+
+router.get('/images', async (req, res) => {
+  try {
+    const query = (req.query.q || '').trim().slice(0, 100);
+    if (!query) {
+      return res.json({ success: false, error: 'Missing query' });
+    }
+
+    // 检查缓存
+    const cached = imageCache.get(query);
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      return res.json({ success: true, data: cached.data, cached: true });
+    }
+
+    // 尝试 Pixabay
+    if (config.pixabayApiKey) {
+      try {
+        const { data: pb } = await axios.get('https://pixabay.com/api/', {
+          params: {
+            key: config.pixabayApiKey,
+            q: query,
+            image_type: 'photo',
+            per_page: 5,
+            safesearch: 'true',
+          },
+          timeout: 5000,
+        });
+
+        if (pb.hits && pb.hits.length > 0) {
+          const images = pb.hits.map(h => ({
+            url: h.webformatURL.replace('_640', '_340'),
+            thumbnail: h.previewURL,
+            width: h.webformatWidth,
+            height: h.webformatHeight,
+            source: 'pixabay',
+            tags: h.tags,
+          }));
+
+          imageCache.set(query, { ts: Date.now(), data: images });
+          return res.json({ success: true, data: images });
+        }
+      } catch (e) {
+        logger.warn(`[Pixabay] 搜索失败: ${query}`, e.message);
+      }
+    }
+
+    // 降级：返回空，前端用智能封面
+    res.json({ success: true, data: [], fallback: true });
   } catch (err) {
     sendError(res, err);
   }

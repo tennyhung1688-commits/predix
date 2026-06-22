@@ -144,4 +144,7 @@ module.exports = {
     clientSecret: process.env.TWITTER_CLIENT_SECRET || '',
     callbackUrl: process.env.TWITTER_CALLBACK_URL || 'http://localhost:3001/api/auth/twitter/callback',
   },
+
+  // Pixabay API（事件封面图搜索）
+  pixabayApiKey: process.env.PIXABAY_API_KEY || '56403467-2d6040e06b03719f86b9bf916',
 };

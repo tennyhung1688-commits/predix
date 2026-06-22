@@ -89,3 +89,7 @@ services:
         value: "chMKwiAtiTbYf3RQRZaVmUoMLKAVBYQFIe6oYAJN9nZJw8xFyC"
       - key: TWITTER_CALLBACK_URL
         value: https://predix-backend-0faz.onrender.com/api/auth/twitter/callback
+
+      # ---- Pixabay API（事件封面图） ----
+      - key: PIXABAY_API_KEY
+        value: "56403467-2d6040e06b03719f86b9bf916"

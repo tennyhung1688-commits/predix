@@ -104,6 +104,10 @@ export const api = {
   getMarketConfig: (tokenId: string) =>
     fetchAPI<ApiResponse<MarketConfig>>(`/markets/${tokenId}/config`),
 
+  // 图片搜索（Pixabay + 降级）
+  getImage: (query: string) =>
+    fetchAPI<ApiResponse<any[]>>(`/images?q=${encodeURIComponent(query)}`),
+
   getWorldCupMarkets: (params?: Record<string, string>) =>
     fetchAPI<ApiResponse<Market[]>>(`/world-cup/markets?${new URLSearchParams(params).toString()}`),
 

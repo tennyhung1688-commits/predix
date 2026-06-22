@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatVolume, formatPercent, countdown, getProbabilityColor } from '@/lib/utils';
 import { useTranslation } from '@/i18n/I18nProvider';
+import { api } from '@/lib/api';
 
 interface MarketCardProps {
   market: any;
@@ -34,6 +35,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
 export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const { t, locale } = useTranslation();
   const [imgError, setImgError] = useState(false);
+  const [searchImage, setSearchImage] = useState<string | null>(null);
 
   const rawOutcomes = safeParseJson(
     locale === 'zh'
@@ -53,9 +55,43 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const category = tags[0]?.label || '';
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
-  // Cover image — use Picsum (reliable) with market ID as consistent seed
+  // Build search query from tags + title
+  const buildImageQuery = () => {
+    const tagLabels = tags.slice(0, 3).map((t: any) => (typeof t === 'string' ? t : (t.label || t.slug || ''))).filter(Boolean);
+    if (tagLabels.length > 0) return tagLabels.join(' ');
+    // Fallback: use question keywords
+    const words = question.replace(/[?¿？]/g, '').split(' ').filter((w: string) => w.length > 3).slice(0, 3);
+    return words.join(' ');
+  };
+  const imageQuery = buildImageQuery();
+
+  // Fetch relevant image from Pixabay
+  useEffect(() => {
+    const q = imageQuery;
+    if (!q || searchImage !== null) return;
+    let cancelled = false;
+
+    api.getImage(q)
+      .then((res: any) => {
+        if (cancelled) return;
+        const images = res?.data || [];
+        if (images.length > 0) {
+          setSearchImage(images[0].url);
+        } else {
+          setSearchImage(''); // trigger fallback
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSearchImage('');
+      });
+
+    return () => { cancelled = true; };
+  }, [imageQuery]);
+
+  // Cover image priority: Pixabay > Picsum
   const imageSeed = market.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || Math.random().toString(36).slice(2, 8);
-  const imageUrl = `https://picsum.photos/seed/${imageSeed}/800/450`;
+  const picsumUrl = `https://picsum.photos/seed/${imageSeed}/800/450`;
+  const imageUrl = searchImage || (searchImage === null ? undefined : picsumUrl);
 
   // Premium gradient fallback per category
   const fallbackGradients: Record<string, string> = {
