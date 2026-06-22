@@ -52,14 +52,8 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const category = tags[0]?.label || '';
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
-  // Build keyword for loremflickr (tags first, fallback to category)
-  const imgKeyword = (() => {
-    const labels = tags.slice(0, 2).map((t: any) => (typeof t === 'string' ? t : (t.label || ''))).filter(Boolean);
-    if (labels.length > 0) return labels.join(',');
-    if (categorySlug) return categorySlug;
-    return 'landscape';
-  })();
-  const imageUrl = `https://loremflickr.com/800/450/${encodeURIComponent(imgKeyword)}?random=${market.id || 1}`;
+  // Pure random photo — no keyword, one seed per market ensures variety
+  const imageUrl = `https://loremflickr.com/800/450?lock=${market.id || 1}`;
 
   // Premium gradient fallback per category (image load failure)
   const fallbackGradient = (() => {
