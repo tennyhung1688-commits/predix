@@ -179,7 +179,7 @@ export function HeroSection({ markets }: HeroSectionProps) {
               const mCategory = mTags[0]?.label || '';
               const mVolume = parseFloat(m.volume24hr || m.volume || '0');
               const mImageSeed = m.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'hero';
-              const mImageUrl = `https://picsum.photos/seed/${mImageSeed}/1200/630`;
+              const mImageUrl = `https://loremflickr.com/1200/630?random=${mImageSeed}`;
 
               return (
                 <div key={m.id || m.conditionId} className="w-full flex-shrink-0">
