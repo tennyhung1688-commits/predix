@@ -138,6 +138,18 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
           <rect x="0" y="0" width="800" height="2" fill={accent} opacity="0.2" />
         </svg>
 
+        {/* Polymarket-style: big percentage on the cover */}
+        {isBinary && prices[0] > 0 && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex flex-col items-end gap-0.5">
+            <span className="text-4xl sm:text-5xl font-black tabular-nums leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] font-display">
+              {Math.round(prices[0] * 100)}<span className="text-lg opacity-60">%</span>
+            </span>
+            <span className="text-[10px] text-white/60 truncate max-w-[120px] text-right leading-tight">
+              {outcomes[0]}
+            </span>
+          </div>
+        )}
+
         {/* Bottom fade for title */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
@@ -180,72 +192,52 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
         </div>
       </div>
 
-      {/* Card body */}
-      <div className="p-3.5 sm:p-4 space-y-3">
-        {/* Countdown & info */}
-        {market.endDate && (
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--text-muted)] flex items-center gap-1">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      {/* Card body — simplified, key data on cover */}
+      <div className="p-3 sm:p-3.5 space-y-2">
+        {/* Countdown & tags */}
+        <div className="flex items-center justify-between gap-2">
+          {market.endDate && (
+            <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
               </svg>
               {countdown(market.endDate, locale)}
             </span>
-            {market.outcomeCount > 2 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/20">
-                {market.outcomeCount} {t('card.moreOptions')}
-              </span>
-            )}
+          )}
+          {volume24h > 0 && (
+            <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
+              {formatVolume(volume24h)} vol
+            </span>
+          )}
+        </div>
+
+        {/* Probability bar (binary) */}
+        {isBinary && (
+          <div className="relative h-1.5 bg-[var(--bg-hover)] rounded-full overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 bg-white/70 rounded-l-full transition-all duration-700"
+              style={{ width: `${Math.max(prices[0] * 100, 3)}%` }}
+            />
           </div>
         )}
 
-        {/* Outcomes */}
-        {isBinary ? (
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="w-2 h-2 rounded-full bg-[var(--green)] shadow-[0_0_6px_rgba(16,185,129,0.5)] shrink-0" />
-                <span className="text-[11px] text-[var(--text-secondary)] truncate">{outcomes[0]}</span>
-                <span className="text-[11px] font-bold text-[var(--green)] tabular-nums shrink-0 ml-auto">{formatPercent(prices[0])}</span>
-              </div>
-              <div className="flex items-center gap-1.5 min-w-0 ml-3">
-                <span className="text-[11px] font-bold text-[var(--red)] tabular-nums shrink-0">{formatPercent(prices[1])}</span>
-                <span className="text-[11px] text-[var(--text-secondary)] truncate">{outcomes[1]}</span>
-                <span className="w-2 h-2 rounded-full bg-[var(--red)] shadow-[0_0_6px_rgba(239,68,68,0.5)] shrink-0" />
-              </div>
-            </div>
-            <div className="relative h-3 bg-[var(--bg-hover)] rounded-full overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#22c55e] to-[#16a34a] rounded-l-full transition-all duration-700"
-                style={{ width: `${Math.max(prices[0] * 100, 2)}%` }}
-              />
-              <div
-                className="absolute inset-y-0 right-0 bg-gradient-to-r from-[#dc2626] to-[#ef4444] rounded-r-full transition-all duration-700"
-                style={{ width: `${Math.max((1 - prices[0]) * 100, 2)}%` }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {outcomes.slice(0, 4).map((outcome: string, i: number) => (
-              <div key={i} className="flex justify-between items-center text-[11px] group/item">
-                <span className="text-[var(--text-secondary)] truncate flex-1 mr-2 group-hover/item:text-[var(--text-primary)] transition-colors">{outcome}</span>
-                <span className="tabular-nums font-semibold" style={{ color: getProbabilityColor(prices[i] || 0) }}>
+        {/* Multi-outcome labels */}
+        {!isBinary && outcomes.length > 0 && (
+          <div className="space-y-0.5">
+            {outcomes.slice(0, 3).map((outcome: string, i: number) => (
+              <div key={i} className="flex justify-between items-center text-[10px]">
+                <span className="text-[var(--text-muted)] truncate flex-1 mr-2">{outcome}</span>
+                <span className="tabular-nums font-medium" style={{ color: getProbabilityColor(prices[i] || 0) }}>
                   {formatPercent(prices[i] || 0)}
                 </span>
               </div>
             ))}
-            {outcomes.length > 4 && (
-              <div className="text-[10px] text-[var(--text-muted)] pt-0.5">
-                +{outcomes.length - 4} {t('card.moreOptions')}
-              </div>
-            )}
           </div>
         )}
       </div>
 
       {/* Hover shimmer */}
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="absolute inset-0 rounded-xl bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
     </>
   );
 
