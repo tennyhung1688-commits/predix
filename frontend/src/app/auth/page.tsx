@@ -410,7 +410,7 @@ export default function AuthPage() {
 
           {/* X (Twitter) Login */}
           <a
-            href={`${(typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 'https://predix-backend-0faz.onrender.com/api'}/auth/twitter`}
+            href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/auth/twitter`}
             className="w-full py-2.5 rounded-xl border border-[var(--border)] bg-[#1a1a1a] hover:bg-[#222] text-[var(--text-primary)] text-sm font-medium transition-all duration-200 focus-ring flex items-center justify-center gap-2"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">

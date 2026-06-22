@@ -48,15 +48,6 @@ export function useRealtimePrice(tokenId: string | null) {
   const reconnectRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
 
-  // Determine WebSocket URL for current environment
-  const getWsUrl = () => {
-    if (typeof window === 'undefined') return null;
-    if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
-    if (!window.location.hostname.includes('localhost')) return null; // production: use polling
-    return 'ws://localhost:3001';
-  };
-  const wsUrl = getWsUrl();
-
   const fetchPrice = useCallback(async () => {
     if (!tokenId) return;
     try {
@@ -72,13 +63,7 @@ export function useRealtimePrice(tokenId: string | null) {
   useEffect(() => {
     if (!tokenId) return;
 
-    // Polling fallback (production without WS)
-    if (!wsUrl) {
-      fetchPrice();
-      pollRef.current = setInterval(fetchPrice, 5000);
-      return () => { if (pollRef.current) clearInterval(pollRef.current); };
-    }
-
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
     let ws: WebSocket;
 
     const connectWs = () => {
