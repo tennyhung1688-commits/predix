@@ -36,7 +36,7 @@ export function OrderNotifier() {
           const oldStatus = prev[key];
 
           if (oldStatus && oldStatus !== newStatus) {
-            const title = order.title || order.market || '#' + key.slice(0, 6);
+            const title = (order as any).title || (order as any).market || '#' + key.slice(0, 6);
             if (newStatus === 'filled' || newStatus === 'matched') {
               showToast('success', `✅ 订单已成交 — ${title}`);
             } else if (newStatus === 'cancelled') {

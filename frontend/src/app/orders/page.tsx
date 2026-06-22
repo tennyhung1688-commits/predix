@@ -22,7 +22,7 @@ function getStatusBadgeClass(status: string): string {
   }
 }
 
-function getStatusLabel(status: string, t: (key: string) => string): string {
+function getStatusLabel(status: string, t: any): string {
   switch (status) {
     case 'pending': return t('orders.statusPending');
     case 'live': return t('orders.statusLive');
@@ -392,7 +392,7 @@ export default function OrdersPage() {
         <>
           {activeSubTab === 'orders' && (
             <>
-              {filteredOrders.length === 0 ? (
+              {orders.length === 0 ? (
                 <div className="text-center py-20">
                   <div className="text-4xl mb-4">📝</div>
                   <h3 className="text-lg font-medium mb-2">

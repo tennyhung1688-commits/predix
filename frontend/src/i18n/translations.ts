@@ -81,7 +81,6 @@ export const translations = {
         'trade.fee': '手续费',
     'trade.max': '最大',
     'trade.actualPay': '实际支付',
-    'trade.max': '最大',
     'trade.availableBalance': '可用余额',
     'trade.quickSelect': '快速选择',
     'trade.buy': '买入',
