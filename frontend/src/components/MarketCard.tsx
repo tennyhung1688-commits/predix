@@ -55,12 +55,32 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const category = tags[0]?.label || '';
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
-  // Build search query from tags + title
+  // Build search query from tags + title keywords
   const buildImageQuery = () => {
-    const tagLabels = tags.slice(0, 3).map((t: any) => (typeof t === 'string' ? t : (t.label || t.slug || ''))).filter(Boolean);
+    // Priority 1: Use market tags (best quality)
+    const tagLabels = tags.slice(0, 3).map((t: any) => (typeof t === 'string' ? t : (t.label || ''))).filter(Boolean);
     if (tagLabels.length > 0) return tagLabels.join(' ');
-    // Fallback: use question keywords
-    const words = question.replace(/[?¿？]/g, '').split(' ').filter((w: string) => w.length > 3).slice(0, 3);
+    
+    // Priority 2: Extract meaningful keywords from question
+    const stopWords = new Set(['will','there','price','does','have','what','who','when','where','how','the','and','for','that','this','with','from','change','agree','confirm','increase','decrease','missed','invade','advance']);
+    const words = question
+      .replace(/[?¿？(),:]/g, '')
+      .split(/[\s-]+/)
+      .filter((w: string) => {
+        const lw = w.toLowerCase();
+        return lw.length > 2 && !stopWords.has(lw) && !/^\d/.test(lw); // skip numbers, dates
+      })
+      .slice(0, 3);
+    
+    // Add category context
+    if (words.length > 0 && categorySlug) {
+      const contextMap: Record<string, string> = {
+        sports: words.join(' ') + ' sport',
+        politics: words.join(' ') + ' politics',
+        crypto: words.join(' ') + ' cryptocurrency',
+      };
+      return contextMap[categorySlug] || words.join(' ');
+    }
     return words.join(' ');
   };
   const imageQuery = buildImageQuery();
@@ -91,7 +111,8 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   // Cover image priority: Pixabay > Picsum
   const imageSeed = market.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || Math.random().toString(36).slice(2, 8);
   const picsumUrl = `https://picsum.photos/seed/${imageSeed}/800/450`;
-  const imageUrl = searchImage || (searchImage === null ? undefined : picsumUrl);
+  // null = still loading, '' = no pixabay result → use picsum
+  const imageUrl = searchImage || picsumUrl;
 
   // Premium gradient fallback per category
   const fallbackGradients: Record<string, string> = {
