@@ -170,57 +170,89 @@ router.get('/markets/:tokenId/config', async (req, res) => {
 
 // -------- 图片搜索（Pixabay + 降级） --------
 
-// 简单内存缓存（24小时）
+// 简单内存缓存（24h）；空结果也缓存（5min 防 429 重试）
 const imageCache = new Map();
 const CACHE_TTL = 24 * 60 * 60 * 1000;
+const EMPTY_CACHE_TTL = 5 * 60 * 1000;
+
+// 请求队列防并发同 key
+const pendingFetches = new Map();
+
+async function fetchFromPixabay(query) {
+  const { data } = await axios.get('https://pixabay.com/api/', {
+    params: {
+      key: config.pixabayApiKey,
+      q: query,
+      image_type: 'photo',
+      per_page: 5,
+      safesearch: 'true',
+    },
+    timeout: 8000,
+    validateStatus: s => s < 500, // 429 不进 catch
+  });
+
+  if (data.totalHits > 0 && data.hits?.length > 0) {
+    return data.hits.map(h => ({
+      url: h.webformatURL.replace('_640', '_340'),
+      thumbnail: h.previewURL,
+      width: h.webformatWidth,
+      height: h.webformatHeight,
+      source: 'pixabay',
+      tags: h.tags,
+    }));
+  }
+  return [];
+}
 
 router.get('/images', async (req, res) => {
   try {
-    const query = (req.query.q || '').trim().slice(0, 100);
-    if (!query) {
-      return res.json({ success: false, error: 'Missing query' });
-    }
+    const raw = (req.query.q || '').trim().slice(0, 100);
+    if (!raw) return res.json({ success: false, error: 'Missing query' });
 
-    // 检查缓存
-    const cached = imageCache.get(query);
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
-      return res.json({ success: true, data: cached.data, cached: true });
-    }
+    // 支持批量：?q=world cup,soccer,election
+    const queries = raw.split(',').map(q => q.trim()).filter(Boolean);
+    if (queries.length === 0) return res.json({ success: false, error: 'Empty query' });
 
-    // 尝试 Pixabay
-    if (config.pixabayApiKey) {
+    const results = {};
+
+    for (const query of queries) {
+      // 检查缓存
+      const cached = imageCache.get(query);
+      if (cached && Date.now() - cached.ts < (cached.data.length ? CACHE_TTL : EMPTY_CACHE_TTL)) {
+        results[query] = cached.data;
+        continue;
+      }
+
+      // 合并并发请求
+      if (pendingFetches.has(query)) {
+        results[query] = await pendingFetches.get(query);
+        continue;
+      }
+
+      // 请求 Pixabay
+      const promise = config.pixabayApiKey
+        ? fetchFromPixabay(query).catch(e => {
+            logger.warn(`[Pixabay] 搜索失败: ${query}`, e.message);
+            return [];
+          })
+        : Promise.resolve([]);
+
+      pendingFetches.set(query, promise);
       try {
-        const { data: pb } = await axios.get('https://pixabay.com/api/', {
-          params: {
-            key: config.pixabayApiKey,
-            q: query,
-            image_type: 'photo',
-            per_page: 5,
-            safesearch: 'true',
-          },
-          timeout: 5000,
-        });
-
-        if (pb.hits && pb.hits.length > 0) {
-          const images = pb.hits.map(h => ({
-            url: h.webformatURL.replace('_640', '_340'),
-            thumbnail: h.previewURL,
-            width: h.webformatWidth,
-            height: h.webformatHeight,
-            source: 'pixabay',
-            tags: h.tags,
-          }));
-
-          imageCache.set(query, { ts: Date.now(), data: images });
-          return res.json({ success: true, data: images });
-        }
-      } catch (e) {
-        logger.warn(`[Pixabay] 搜索失败: ${query}`, e.message);
+        const images = await promise;
+        imageCache.set(query, { ts: Date.now(), data: images });
+        results[query] = images;
+      } finally {
+        pendingFetches.delete(query);
       }
     }
 
-    // 降级：返回空，前端用智能封面
-    res.json({ success: true, data: [], fallback: true });
+    // 单查询直接返回数组，批量返回映射
+    if (queries.length === 1) {
+      const data = results[queries[0]];
+      return res.json({ success: true, data, fallback: data.length === 0 });
+    }
+    res.json({ success: true, data: results });
   } catch (err) {
     sendError(res, err);
   }
