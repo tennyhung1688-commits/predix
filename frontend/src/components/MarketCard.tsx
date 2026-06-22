@@ -55,32 +55,32 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const category = tags[0]?.label || '';
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
-  // Build search query from tags + title keywords
+  // Build search query — add country/team names for distinction
   const buildImageQuery = () => {
-    // Priority 1: Use market tags (best quality)
-    const tagLabels = tags.slice(0, 3).map((t: any) => (typeof t === 'string' ? t : (t.label || ''))).filter(Boolean);
-    if (tagLabels.length > 0) return tagLabels.join(' ');
+    // Priority 1: tags + distinctive country/team names from question
+    const tagLabels = tags.slice(0, 2).map((t: any) => (typeof t === 'string' ? t : (t.label || ''))).filter(Boolean);
     
-    // Priority 2: Extract meaningful keywords from question
+    // Extract proper nouns (capitalized words) from question for uniqueness
+    const properNouns = question
+      .replace(/[?¿？(),:]/g, '')
+      .split(/[\s-]+/)
+      .filter((w: string) => w.length > 2 && /^[A-Z]/.test(w)) // starts with capital = likely proper noun
+      .filter((w: string) => !['Will','The','Who','What','When','Where'].includes(w))
+      .slice(0, 2);
+    
+    // Combine: tags first, then distinctive names
+    const parts = [...new Set([...tagLabels, ...properNouns])].slice(0, 4);
+    if (parts.length > 0) return parts.join(' ');
+    
+    // Fallback: keywords with category context
     const stopWords = new Set(['will','there','price','does','have','what','who','when','where','how','the','and','for','that','this','with','from','change','agree','confirm','increase','decrease','missed','invade','advance']);
     const words = question
       .replace(/[?¿？(),:]/g, '')
       .split(/[\s-]+/)
-      .filter((w: string) => {
-        const lw = w.toLowerCase();
-        return lw.length > 2 && !stopWords.has(lw) && !/^\d/.test(lw); // skip numbers, dates
-      })
+      .filter((w: string) => w.length > 3 && !stopWords.has(w.toLowerCase()) && !/^\d/.test(w))
       .slice(0, 3);
     
-    // Add category context
-    if (words.length > 0 && categorySlug) {
-      const contextMap: Record<string, string> = {
-        sports: words.join(' ') + ' sport',
-        politics: words.join(' ') + ' politics',
-        crypto: words.join(' ') + ' cryptocurrency',
-      };
-      return contextMap[categorySlug] || words.join(' ');
-    }
+    if (words.length > 0 && categorySlug === 'sports') return words.join(' ') + ' sport';
     return words.join(' ');
   };
   const imageQuery = buildImageQuery();
@@ -96,9 +96,11 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
         if (cancelled) return;
         const images = res?.data || [];
         if (images.length > 0) {
-          setSearchImage(images[0].url);
+          // Pick different image for each market: hash the ID to select from returned set
+          const idx = parseInt(market.id, 10) % images.length || 0;
+          setSearchImage(images[idx].url);
         } else {
-          setSearchImage(''); // trigger fallback
+          setSearchImage(''); // trigger fallback → Picsum
         }
       })
       .catch(() => {
@@ -106,7 +108,7 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
       });
 
     return () => { cancelled = true; };
-  }, [imageQuery]);
+  }, [imageQuery, market.id]);
 
   // Cover image priority: Pixabay > Picsum
   const imageSeed = market.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || Math.random().toString(36).slice(2, 8);
