@@ -1,8 +1,40 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatVolume, formatPercent, countdown, getProbabilityColor } from '@/lib/utils';
 import { useTranslation } from '@/i18n/I18nProvider';
+import { api } from '@/lib/api';
+
+// Shared image pool — fetched once, shared across all cards on the page
+let sharedPool: Array<{ url: string; thumb: string; id: number }> | null = null;
+let poolLoading = false;
+const poolListeners: Array<() => void> = [];
+
+function useImagePool() {
+  const [pool, setPool] = useState<typeof sharedPool>(sharedPool);
+  useEffect(() => {
+    if (sharedPool) { setPool(sharedPool); return; }
+    if (poolLoading) {
+      const listener = () => setPool(sharedPool);
+      poolListeners.push(listener);
+      return () => { const i = poolListeners.indexOf(listener); if (i >= 0) poolListeners.splice(i, 1); };
+    }
+    poolLoading = true;
+    api.getImagePool().then((res: any) => {
+      sharedPool = res?.data || [];
+      setPool(sharedPool);
+      poolListeners.forEach(fn => fn());
+      poolListeners.length = 0;
+    }).catch(() => {
+      sharedPool = [];
+      setPool(sharedPool);
+      poolListeners.forEach(fn => fn());
+      poolListeners.length = 0;
+    });
+  }, []);
+  return pool;
+}
 
 interface MarketCardProps {
   market: any;
@@ -51,92 +83,28 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
   const category = tags[0]?.label || '';
   const categorySlug = (tags[0]?.slug || '').toLowerCase();
 
-  // ── Generative cover art (no images) ──
-  // Each card gets a unique abstract composition from market.id
-  const sid = parseInt(market.id || '0', 10);
-  const comp = sid % 5; // 0=stripes, 1=blocks, 2=concentric, 3=diagonal, 4=grid
-  const h = sid % 360;  // hue shift within category band
-
-  // Category color bands in OKLCH — each gets a range to vary within
-  const catBand: Record<string, [number, number]> = {
-    sports: [140, 170], politics: [210, 250], crypto: [30, 60],
-    technology: [260, 300], entertainment: [320, 350], world: [190, 220],
-    economy: [80, 110], business: [80, 110], science: [180, 210],
-  };
-  const [hMin, hMax] = catBand[categorySlug] || [0, 360];
-  const hue = hMin + (h % (hMax - hMin));
-  const hue2 = hue + 20 + (h % 30);
-
-  // OKLCH colors — low chroma for dark backgrounds, high chroma for accents
-  const bg = `oklch(18% 0.02 ${hue})`;
-  const bg2 = `oklch(22% 0.03 ${hue2})`;
-  const accent = `oklch(55% 0.15 ${hue})`;
-  const accentDim = `oklch(35% 0.06 ${hue})`;
-  const line = `oklch(45% 0.04 ${hue})`;
+  // Image pool — pick by market.id index, never repeats within the page
+  const pool = useImagePool();
+  const imageUrl = (() => {
+    if (pool && pool.length > 0) {
+      const idx = parseInt(market.id || '0', 10) % pool.length;
+      return pool[idx].url;
+    }
+    // Fallback while pool loads — deterministic random seed
+    const seed = market.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'fallback';
+    return `https://loremflickr.com/800/450?lock=${seed}`;
+  })();
 
   const cardContent = (
     <>
-      {/* Cover — generative abstract composition */}
-      <div className="relative w-full h-36 sm:h-40 overflow-hidden">
-        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice">
-          <defs>
-            <linearGradient id={`bg-${market.id}`} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor={bg} /><stop offset="100%" stopColor={bg2} />
-            </linearGradient>
-            {/* Noise filter */}
-            <filter id={`n-${market.id}`}><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-          </defs>
-          {/* Base */}
-          <rect width="800" height="450" fill={`url(#bg-${market.id})`} />
-          {/* Noise texture overlay */}
-          <rect width="800" height="450" filter={`url(#n-${market.id})`} opacity="0.03" />
-          {/* Grid lines — terminal feel */}
-          {Array.from({length:6}).map((_,i) => (
-            <line key={`v${i}`} x1={120+i*130} y1="0" x2={120+i*130} y2="450" stroke={line} strokeWidth="0.5" opacity="0.08" />
-          ))}
-          {Array.from({length:4}).map((_,i) => (
-            <line key={`h${i}`} x1="0" y1={100+i*110} x2="800" y2={100+i*110} stroke={line} strokeWidth="0.5" opacity="0.08" />
-          ))}
-          {/* Composition elements */}
-          {comp === 0 && ( // Stripes — asymmetric vertical bands
-            <>
-              {[40, 180, 520, 660].map((x, i) => (
-                <rect key={i} x={x} y="0" width="60" height="450" fill={accentDim} opacity={0.12 - i*0.02} />
-              ))}
-              <rect x="0" y={320+(h%80)} width="800" height="4" fill={accent} opacity="0.15" />
-            </>
-          )}
-          {comp === 1 && ( // Blocks — abstract Mondrian-esque
-            <>
-              <rect x="0" y="0" width={180+(h%200)} height={200+(h%100)} fill={accentDim} opacity="0.1" />
-              <rect x={500-(h%100)} y={250-(h%80)} width={200+(h%120)} height="0" stroke={accent} strokeWidth="3" opacity="0.12" /><rect x={500-(h%100)} y={250-(h%80)} width={200+(h%120)} height={100+(h%80)} fill={accentDim} opacity="0.06" />
-              <rect x={100+(h%300)} y="20" width="3" height="130" fill={accent} opacity="0.1" />
-            </>
-          )}
-          {comp === 2 && ( // Concentric
-            <>
-              {[0,1,2,3].map(i => (
-                <circle key={i} cx={400+(h%200)-100} cy={220+(h%100)-50} r={60+i*50} fill="none" stroke={i===0?accent:accentDim} strokeWidth={i===0?2:1} opacity={0.1-i*0.02} />
-              ))}
-            </>
-          )}
-          {comp === 3 && ( // Diagonal slash
-            <>
-              <polygon points={`0,0 ${120+(h%200)},0 0,${300+(h%150)}`} fill={accentDim} opacity="0.08" />
-              <polygon points={`800,450 ${680-(h%200)},450 800,${150-(h%150)}`} fill={accentDim} opacity="0.06" />
-              <line x1="0" y1={350+(h%100)} x2="800" y2={100+(h%100)} stroke={accent} strokeWidth="1.5" opacity="0.1" />
-            </>
-          )}
-          {comp === 4 && ( // Grid spotlight
-            <>
-              <rect x={(h%300)} y={(h%200)} width="160" height="160" fill="none" stroke={accent} strokeWidth="1" opacity="0.08" />
-              <rect x={(h%300)+40} y={(h%200)+40} width="80" height="80" fill="none" stroke={accent} strokeWidth="2" opacity="0.12" />
-              <circle cx={(h%300)+80} cy={(h%200)+80} r="20" fill={accent} opacity="0.12" />
-            </>
-          )}
-          {/* Thin top accent line */}
-          <rect x="0" y="0" width="800" height="2" fill={accent} opacity="0.2" />
-        </svg>
+      {/* Cover — Pixabay real photo from shared pool */}
+      <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-[var(--bg-secondary)]">
+        <img
+          src={imageUrl}
+          alt={question}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
 
         {/* Polymarket-style: big percentage on the cover */}
         {isBinary && prices[0] > 0 && (

@@ -258,4 +258,51 @@ router.get('/images', async (req, res) => {
   }
 });
 
+// -------- 随机图池（解决 429 + 重复问题） --------
+// 一次拉取 100 张热门图，整页共享，按 market.id 索引选图
+const imagePool = { data: [], ts: 0 };
+const POOL_SIZE = 100;
+const POOL_TTL = 60 * 60 * 1000; // 1 小时
+
+// 热门搜索词轮换，确保图库多样性
+const POOL_QUERIES = ['nature', 'city', 'technology', 'sport', 'business', 'science', 'abstract', 'architecture', 'travel', 'music'];
+
+router.get('/images/pool', async (req, res) => {
+  try {
+    // 缓存命中
+    if (imagePool.data.length >= POOL_SIZE && Date.now() - imagePool.ts < POOL_TTL) {
+      return res.json({ success: true, data: imagePool.data, cached: true });
+    }
+
+    // 逐批拉取直到凑够 POOL_SIZE 张
+    const images = [];
+    for (const query of POOL_QUERIES) {
+      if (images.length >= POOL_SIZE) break;
+      if (!config.pixabayApiKey) break;
+      try {
+        const { data } = await axios.get('https://pixabay.com/api/', {
+          params: { key: config.pixabayApiKey, q: query, image_type: 'photo', per_page: 15, order: 'popular' },
+          timeout: 8000,
+          validateStatus: s => s < 500,
+        });
+        if (data.hits) {
+          data.hits.forEach(h => {
+            images.push({ url: h.webformatURL.replace('_640', '_340'), thumb: h.previewURL, id: h.id, tags: h.tags });
+          });
+        }
+      } catch (e) { /* skip failed query */ }
+    }
+
+    if (images.length > 0) {
+      imagePool.data = images;
+      imagePool.ts = Date.now();
+      return res.json({ success: true, data: images });
+    }
+
+    res.json({ success: false, error: 'No images available' });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
 module.exports = router;

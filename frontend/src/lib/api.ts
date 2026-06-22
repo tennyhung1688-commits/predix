@@ -104,9 +104,9 @@ export const api = {
   getMarketConfig: (tokenId: string) =>
     fetchAPI<ApiResponse<MarketConfig>>(`/markets/${tokenId}/config`),
 
-  // 图片搜索（Pixabay + 降级）
-  getImage: (query: string) =>
-    fetchAPI<ApiResponse<any[]>>(`/images?q=${encodeURIComponent(query)}`),
+  // 随机图池 — 一次拉取，整页共享，按市场 ID 索引取图（避免重复+429）
+  getImagePool: () =>
+    fetchAPI<ApiResponse<Array<{ url: string; thumb: string; id: number }>>>('/images/pool'),
 
   getWorldCupMarkets: (params?: Record<string, string>) =>
     fetchAPI<ApiResponse<Market[]>>(`/world-cup/markets?${new URLSearchParams(params).toString()}`),
