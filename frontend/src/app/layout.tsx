@@ -73,6 +73,10 @@ function RootLayoutInner({
             <footer className="border-t border-[var(--border)] px-4 py-4 text-center text-[11px] text-[var(--text-muted)]">
               <span>PrediX © 2026</span>
               <span className="mx-3 opacity-30">|</span>
+              <a href="https://x.com/PrediXeucc" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-blue)] transition-colors">
+                X @PrediXeucc
+              </a>
+              <span className="mx-3 opacity-30">|</span>
               <a href="mailto:predixservice@outlook.com" className="hover:text-[var(--accent-blue)] transition-colors">
                 predixservice@outlook.com
               </a>
