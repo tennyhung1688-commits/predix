@@ -14,9 +14,11 @@ export default function AdminClaimPage() {
     setStatus('loading');
     try {
       const res: any = await api.post('/admin/claim', { wallet: user.walletAddress, key: claimKey });
-      if (res?.data?.success) {
+      if (res?.success) {
         setStatus('done');
         window.location.href = '/admin';
+      } else {
+        setStatus('error');
       }
     } catch {
       setStatus('error');
