@@ -95,19 +95,21 @@ export function MarketRow({ market, index, pool }: MarketRowProps) {
         alt={question || ''}
       />
 
-      {/* Title + meta in one line */}
-      <div className="min-w-0 flex items-center gap-2">
-        <span className="text-[11px] md:text-[12px] font-medium leading-tight line-clamp-1 text-white/90 group-hover:text-white transition-colors">
-          {question || '—'}
-        </span>
-        {isUrgent && (
-          <span className="shrink-0 text-[9px] px-1.5 py-px rounded-sm bg-red-500/10 text-red-400/80 font-medium">
-            即将到期
+      {/* Title + inline tags */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] md:text-[12px] font-medium leading-tight line-clamp-1 text-white/90 group-hover:text-white transition-colors">
+            {question || '—'}
           </span>
-        )}
-        {market.closed && (
-          <span className="shrink-0 text-[9px] px-1.5 py-px rounded-sm bg-white/[0.03] text-white/25">{t('time.ended')}</span>
-        )}
+          {isUrgent && (
+            <span className="shrink-0 text-[8px] md:text-[9px] px-1 py-px rounded bg-red-500/10 text-red-400/80">
+              即将到期
+            </span>
+          )}
+          {market.closed && (
+            <span className="shrink-0 text-[8px] md:text-[9px] px-1 py-px rounded bg-white/[0.03] text-white/25">{t('time.ended')}</span>
+          )}
+        </div>
       </div>
 
       {/* Probability — signature: bold number */}
