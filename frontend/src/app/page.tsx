@@ -3,7 +3,7 @@
 import { useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useMarkets } from '@/hooks/useMarkets';
-import { MarketRow, useImagePool } from '@/components/MarketRow';
+import { MarketCard } from '@/components/MarketCard';
 import { HeroSection } from '@/components/HeroSection';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { api } from '@/lib/api';
@@ -32,9 +32,6 @@ export default function Home() {
   const [popularOnly, setPopularOnly] = useState(false);
   const [speedOnly, setSpeedOnly] = useState(false);
   const POPULAR_VOLUME_THRESHOLD = 0;
-
-  // Shared image pool for row thumbnails
-  const imagePool = useImagePool();
 
   // Sync activeTab with URL ?tab= param
   const handleTabChange = (tab: string) => {
@@ -349,16 +346,14 @@ export default function Home() {
       <div>
         <div className="flex-1 min-w-0">
           {isLoading ? (
-            <div className="space-y-0">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-[44px,1fr,100px,64px] md:grid-cols-[52px,1fr,110px,90px,100px,100px,72px] gap-2 md:gap-3 items-center px-3 py-2.5 border-b border-[var(--border)]">
-                  <div className="skeleton w-11 h-8 md:w-[52px] md:h-10 rounded" />
-                  <div><div className="skeleton h-3 w-3/4 mb-1" /><div className="skeleton h-2 w-1/4" /></div>
-                  <div className="text-right"><div className="skeleton h-5 w-12 ml-auto" /></div>
-                  <div className="text-right hidden md:block"><div className="skeleton h-3 w-10 ml-auto" /></div>
-                  <div className="text-right hidden md:block"><div className="skeleton h-3 w-12 ml-auto" /></div>
-                  <div className="text-right"><div className="skeleton h-3 w-8 ml-auto" /></div>
-                  <div className="text-right"><div className="skeleton w-7 h-7 rounded ml-auto" /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl overflow-hidden animate-pulse">
+                  <div className="skeleton w-full h-36 sm:h-40 rounded-none" />
+                  <div className="p-3 space-y-2">
+                    <div className="skeleton h-3 w-3/4" />
+                    <div className="skeleton h-2 w-1/2" />
+                  </div>
                 </div>
               ))}
             </div>
@@ -384,24 +379,12 @@ export default function Home() {
             </div>
           ) : (
             <>
-              {/* Column headers (desktop) */}
-              <div className="hidden md:grid grid-cols-[52px,1fr,110px,90px,100px,100px,72px] gap-3 items-center px-3 py-1.5 text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider border-b border-[var(--border)]">
-                <span />
-                <span>盘口</span>
-                <span className="text-right">概率</span>
-                <span className="text-right">{t('home.24hVolume')}</span>
-                <span className="text-right">买卖价</span>
-                <span className="text-right">倒计时</span>
-                <span className="text-right" />
-              </div>
-
-              <div>
-                {filteredMarkets.map((market: any, idx: number) => (
-                  <MarketRow
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+                {filteredMarkets.map((market: any) => (
+                  <MarketCard
                     key={market.id || market.conditionId}
                     market={market}
-                    index={idx}
-                    pool={imagePool}
+                    href={`/market/${market.id || market.conditionId}`}
                   />
                 ))}
               </div>
