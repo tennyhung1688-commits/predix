@@ -351,7 +351,7 @@ export default function Home() {
           {isLoading ? (
             <div className="space-y-0">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-[44px,1fr,100px,85px,95px,95px,64px] md:grid-cols-[52px,1fr,110px,90px,100px,100px,72px] gap-2 md:gap-3 items-center px-3 py-2.5 border-b border-[var(--border)]">
+                <div key={i} className="grid grid-cols-[44px,1fr,100px,64px] md:grid-cols-[52px,1fr,110px,90px,100px,100px,72px] gap-2 md:gap-3 items-center px-3 py-2.5 border-b border-[var(--border)]">
                   <div className="skeleton w-11 h-8 md:w-[52px] md:h-10 rounded" />
                   <div><div className="skeleton h-3 w-3/4 mb-1" /><div className="skeleton h-2 w-1/4" /></div>
                   <div className="text-right"><div className="skeleton h-5 w-12 ml-auto" /></div>
@@ -385,7 +385,7 @@ export default function Home() {
           ) : (
             <>
               {/* Column headers (desktop) */}
-              <div className="hidden md:grid grid-cols-[44px,1fr,96px,76px,84px,84px,60px] gap-3 items-center px-3 py-1 text-[9px] uppercase font-medium text-white/18 tracking-wider border-b border-white/[0.04]">
+              <div className="hidden md:grid grid-cols-[52px,1fr,110px,90px,100px,100px,72px] gap-3 items-center px-3 py-1.5 text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider border-b border-[var(--border)]">
                 <span />
                 <span>盘口</span>
                 <span className="text-right">概率</span>
