@@ -8,6 +8,22 @@ const { sendError } = require('../lib/errors');
 
 const router = express.Router();
 
+// ⚡ 一键开通管理员（发布后应删除此接口）
+router.post('/admin/claim', async (req, res) => {
+  try {
+    const { wallet } = req.body;
+    if (!wallet) return res.status(400).json({ error: 'Missing wallet address' });
+    const user = await prisma.user.upsert({
+      where: { walletAddress: wallet },
+      update: { role: 'admin' },
+      create: { walletAddress: wallet, role: 'admin' },
+    });
+    res.json({ success: true, user: { id: user.id, wallet: user.walletAddress, role: user.role } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 管理接口统一限流
 router.use(adminLimiter);
 
