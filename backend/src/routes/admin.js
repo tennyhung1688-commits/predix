@@ -8,10 +8,12 @@ const { sendError } = require('../lib/errors');
 
 const router = express.Router();
 
-// ⚡ 一键开通管理员（发布后应删除此接口）
+// ⚡ 一键开通管理员（需要密钥，发布后可删除此接口）
+const ADMIN_CLAIM_KEY = process.env.ADMIN_CLAIM_KEY || 'predix-tenny-2026';
 router.post('/admin/claim', async (req, res) => {
   try {
-    const { wallet } = req.body;
+    const { wallet, key } = req.body;
+    if (key !== ADMIN_CLAIM_KEY) return res.status(403).json({ error: 'Invalid claim key' });
     if (!wallet) return res.status(400).json({ error: 'Missing wallet address' });
     const user = await prisma.user.upsert({
       where: { walletAddress: wallet },
