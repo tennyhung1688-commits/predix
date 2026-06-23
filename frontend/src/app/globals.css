@@ -355,6 +355,12 @@ button, a, input, select, textarea {
   display: none;
 }
 
+/* ========== 触控优化 ========== */
+a, button, [role="button"], [tabindex]:not([tabindex="-1"]) {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* ========== Toast 动画 ========== */
 @keyframes slideInRight {
   from { transform: translateX(100%); opacity: 0; }

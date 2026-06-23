@@ -77,7 +77,7 @@ export function HeroSection({ markets }: HeroSectionProps) {
         <div className="max-w-[1440px] mx-auto px-3 sm:px-4 py-8">
           <div className="flex items-center justify-center py-12">
             <div className="animate-pulse-slow text-[var(--text-muted)] text-sm">
-              {t('home.loading')}...
+              {t('home.loading')}…
             </div>
           </div>
         </div>
@@ -165,7 +165,7 @@ export function HeroSection({ markets }: HeroSectionProps) {
           ref={trackRef}
         >
           <div
-            className="flex transition-transform duration-600 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            className="flex transition-transform duration-[600ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
             style={{ transform: `translateX(-${current * 100}%)` }}
           >
             {featured.map((m) => {
@@ -192,8 +192,10 @@ export function HeroSection({ markets }: HeroSectionProps) {
                       <img
                         src={mImageUrl}
                         alt={mTitle}
+                        width={1200}
+                        height={630}
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover/card:scale-105"
-                        loading="lazy"
+                        fetchPriority="high"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 

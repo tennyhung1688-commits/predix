@@ -226,9 +226,8 @@ export function WalletModal({ onClose, mode = 'login' }: { onClose: () => void; 
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overscroll-contain"
       onClick={onClose}
-      aria-hidden="true"
     >
       <div
         ref={dialogRef}
@@ -290,7 +289,7 @@ export function WalletModal({ onClose, mode = 'login' }: { onClose: () => void; 
                   ref={inputRef}
                   id="wallet-address-input"
                   type="text"
-                  placeholder="0x..."
+                  placeholder="0x…"
                   value={address}
                   onChange={e => setAddress(e.target.value)}
                   aria-describedby={error ? 'wallet-error' : undefined}

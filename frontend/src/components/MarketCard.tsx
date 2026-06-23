@@ -102,7 +102,9 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
         <img
           src={imageUrl}
           alt={question}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          width={800}
+          height={450}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
 

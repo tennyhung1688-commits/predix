@@ -207,7 +207,7 @@ export function Navbar() {
                   disabled={bindLoading}
                   className="px-3 py-1.5 rounded-lg border border-[var(--accent-amber)] text-[var(--accent-amber)] text-xs font-semibold hover:bg-[var(--accent-amber)]/10 transition-all duration-200 disabled:opacity-50"
                 >
-                  {bindLoading ? '...' : t('nav.bindWallet')}
+                  {bindLoading ? '…' : t('nav.bindWallet')}
                 </button>
                 <button
                   onClick={logout}

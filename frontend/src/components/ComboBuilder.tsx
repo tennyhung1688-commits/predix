@@ -329,11 +329,11 @@ export function ComboBuilder({ onClose }: ComboBuilderProps) {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && loadMarkets()}
-                placeholder="搜索市场..."
+                placeholder="搜索市场…"
               />
               <div style={styles.marketList}>
                 {loadingMarkets ? (
-                  <div style={styles.loading}>加载中...</div>
+                  <div style={styles.loading}>加载中…</div>
                 ) : markets.slice(0, 20).map(m => {
                   const tks = safeJson(m.clobTokenIds);
                   const alreadyAdded = legs.some(l => l.tokenId === tks[0]);
@@ -400,7 +400,7 @@ export function ComboBuilder({ onClose }: ComboBuilderProps) {
         {tab === 'templates' && (
           <div style={styles.content}>
             {loadingTemplates ? (
-              <div style={styles.loading}>加载中...</div>
+              <div style={styles.loading}>加载中…</div>
             ) : templates.length === 0 ? (
               <div style={styles.empty}>暂无模板</div>
             ) : (
@@ -427,7 +427,7 @@ export function ComboBuilder({ onClose }: ComboBuilderProps) {
             {!user ? (
               <div style={styles.empty}>{t('comments.loginFirst')}</div>
             ) : loadingCombos ? (
-              <div style={styles.loading}>加载中...</div>
+              <div style={styles.loading}>加载中…</div>
             ) : myCombos.length === 0 ? (
               <div style={styles.empty}>
                 <div>{t('combo.noCombos')}</div>
