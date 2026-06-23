@@ -5,6 +5,7 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Providers } from "@/components/Providers";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { PageViewTracker } from "@/components/PageViewTracker";
 import { translations } from "@/i18n/translations";
 
 const dmSans = DM_Sans({
@@ -22,6 +23,27 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: translations.zh['app.title'],
   description: translations.zh['app.description'],
+  metadataBase: new URL('https://predix.eu.cc'),
+  openGraph: {
+    title: 'PrediX — 全球预测市场交易平台',
+    description: '在 Polymarket 上交易世界杯、政治、加密等预测市场。实时概率、真实赔率、零滑点。',
+    url: 'https://predix.eu.cc',
+    siteName: 'PrediX',
+    locale: 'zh_CN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PrediX — 全球预测市场交易平台',
+    description: '在 Polymarket 上交易世界杯、政治、加密等预测市场。实时概率、真实赔率。',
+  },
+  alternates: {
+    languages: {
+      'zh-CN': '/zh',
+      'en-US': '/en',
+    },
+  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport = {
@@ -43,6 +65,7 @@ function RootLayoutInner({
       style={{ colorScheme: 'dark' }}
     >
       <body className="min-h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
+        <PageViewTracker />
         <ErrorBoundary>
           <Providers>
             <Navbar />

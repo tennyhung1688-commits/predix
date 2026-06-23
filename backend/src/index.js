@@ -119,6 +119,8 @@ app.use('/api', smartmoneyRoutes);
 app.use('/api', settlementRoutes);
 app.use('/api', comboRoutes);
 app.use('/api', commentRoutes);
+const analyticsRoutes = require('./routes/analytics');
+app.use('/api', analyticsRoutes);
 
 app.use('/api', alertRoutes);
 app.use('/api', priceHistoryRoutes);
