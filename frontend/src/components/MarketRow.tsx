@@ -84,12 +84,12 @@ export function MarketRow({ market, index, pool }: MarketRowProps) {
   return (
     <Link
       href={`/market/${market.id}`}
-      className={`grid grid-cols-[40px,1fr,90px,56px] md:grid-cols-[52px,1fr,110px,90px,100px,100px,72px] gap-2 md:gap-3 items-center px-3 py-2.5 border-b border-[var(--border-light)] hover:bg-white/[0.03] active:scale-[0.995] transition-all duration-150 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-blue)]/50 ${market.closed ? 'opacity-40 pointer-events-none' : ''} ${index % 2 === 1 ? 'bg-white/[0.01]' : ''}`}
+      className={`grid grid-cols-[40px,1fr,90px,56px] md:grid-cols-[48px,1fr,100px,80px,90px,90px,64px] gap-2 md:gap-3 items-center px-3 py-2 md:py-2 border-b border-[var(--border-light)] hover:bg-white/[0.03] active:scale-[0.995] transition-all duration-150 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-blue)]/50 ${market.closed ? 'opacity-40 pointer-events-none' : ''} ${index % 2 === 1 ? 'bg-white/[0.01]' : ''}`}
     >
       {/* Thumbnail */}
       <img
         src={img}
-        className="w-11 h-8 md:w-[52px] md:h-10 rounded-[4px] object-cover bg-[var(--bg-secondary)] shrink-0 shadow-sm"
+        className="w-10 h-7 md:w-12 md:h-9 rounded-[3px] object-cover bg-[var(--bg-secondary)] shrink-0"
         loading="lazy"
         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         alt={question || ''}
@@ -97,41 +97,41 @@ export function MarketRow({ market, index, pool }: MarketRowProps) {
 
       {/* Title + tags */}
       <div className="min-w-0">
-        <div className="text-[12px] md:text-[13px] font-semibold leading-snug line-clamp-2 text-white/90 group-hover:text-white transition-colors">
+        <div className="text-[11px] md:text-[12px] font-semibold leading-tight line-clamp-2 text-white/90 group-hover:text-white transition-colors">
           {question || '—'}
         </div>
         <div className="flex gap-1 mt-0.5 flex-wrap">
           {cat && (
-            <span className="text-[9px] px-1.5 py-px rounded-sm border border-white/5 bg-white/[0.03] text-white/40 tracking-wide uppercase">
+            <span className="text-[8px] md:text-[9px] px-1.5 py-px rounded-sm border border-white/5 bg-white/[0.03] text-white/40 tracking-wide uppercase">
               {cat}
             </span>
           )}
           {isUrgent && (
-            <span className="text-[9px] px-1.5 py-px rounded-sm bg-red-500/10 text-red-400/80 font-medium inline-flex items-center gap-0.5">
+            <span className="text-[8px] md:text-[9px] px-1.5 py-px rounded-sm bg-red-500/10 text-red-400/80 font-medium inline-flex items-center gap-0.5">
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
               即将到期
             </span>
           )}
           {market.closed && (
-            <span className="text-[9px] px-1.5 py-px rounded-sm bg-white/[0.03] text-white/25">{t('time.ended')}</span>
+            <span className="text-[8px] md:text-[9px] px-1.5 py-px rounded-sm bg-white/[0.03] text-white/25">{t('time.ended')}</span>
           )}
         </div>
       </div>
 
-      {/* Probability — signature: bold number with subtle glow */}
+      {/* Probability — signature: bold number */}
       <div className="text-right">
         {isBinary ? (
           <>
             <div
-              className="text-lg md:text-xl font-black tabular-nums leading-none"
+              className="text-base md:text-lg font-black tabular-nums leading-none"
               style={{ color: yesPct >= 50 ? '#22c55e' : '#ef4444' }}
             >
-              <span className="drop-shadow-[0_0_6px_rgba(34,197,94,0.15)]" style={yesPct < 50 ? { filter: 'drop-shadow(0 0 6px rgba(239,68,68,0.15))' } : undefined}>
+              <span style={{ filter: yesPct >= 50 ? 'drop-shadow(0 0 4px rgba(34,197,94,0.12))' : 'drop-shadow(0 0 4px rgba(239,68,68,0.12))' }}>
                 {yesPct}
               </span>
-              <span className="text-[10px] opacity-40">%</span>
+              <span className="text-[9px] opacity-40">%</span>
             </div>
-            <div className="h-1 mt-0.5 rounded-full bg-white/[0.06] overflow-hidden hidden md:block">
+            <div className="h-0.5 mt-0.5 rounded-full bg-white/[0.06] overflow-hidden hidden md:block">
               <div
                 className="h-full rounded-full transition-all duration-700 ease-out"
                 style={{
@@ -148,13 +148,13 @@ export function MarketRow({ market, index, pool }: MarketRowProps) {
         )}
       </div>
 
-      {/* Volume — hidden on mobile */}
-      <div className="text-right text-[11px] font-medium tabular-nums text-white/50 hidden md:block">
+      {/* Volume */}
+      <div className="text-right text-[10px] md:text-[11px] font-medium tabular-nums text-white/45 hidden md:block">
         {volume24h > 0 ? formatVolume(volume24h) : '—'}
       </div>
 
       {/* Spread */}
-      <div className="text-right text-[11px] tabular-nums hidden md:block">
+      <div className="text-right text-[10px] md:text-[11px] tabular-nums hidden md:block">
         {bid != null ? <span className="text-[var(--green)] font-semibold">{(bid*100).toFixed(1)}¢</span> : <span className="text-white/20">—</span>}
         {bid != null && ask != null && <span className="text-white/15 mx-0.5">/</span>}
         {ask != null ? <span className="text-[var(--red)] font-semibold">{(ask*100).toFixed(1)}¢</span> : null}
@@ -162,7 +162,7 @@ export function MarketRow({ market, index, pool }: MarketRowProps) {
 
       {/* Countdown */}
       <div className="text-right">
-        <span className={`text-[11px] font-semibold tabular-nums ${isUrgent ? 'text-red-400' : 'text-white/45'}`}>
+        <span className={`text-[10px] md:text-[11px] font-semibold tabular-nums ${isUrgent ? 'text-red-400' : 'text-white/45'}`}>
           {cd}
         </span>
       </div>

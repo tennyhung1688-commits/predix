@@ -385,7 +385,7 @@ export default function Home() {
           ) : (
             <>
               {/* Column headers (desktop) */}
-              <div className="hidden md:grid grid-cols-[52px,1fr,110px,90px,100px,100px,72px] gap-3 items-center px-3 py-1.5 text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider border-b border-[var(--border)]">
+              <div className="hidden md:grid grid-cols-[48px,1fr,100px,80px,90px,90px,64px] gap-3 items-center px-3 py-1 text-[9px] uppercase font-semibold text-white/25 tracking-wider border-b border-[var(--border-light)]">
                 <span />
                 <span>盘口</span>
                 <span className="text-right">概率</span>
