@@ -84,38 +84,30 @@ export function MarketRow({ market, index, pool }: MarketRowProps) {
   return (
     <Link
       href={`/market/${market.id}`}
-      className={`grid grid-cols-[40px,1fr,90px,56px] md:grid-cols-[48px,1fr,100px,80px,90px,90px,64px] gap-2 md:gap-3 items-center px-3 py-1.5 border-b border-white/[0.04] hover:bg-white/[0.05] active:scale-[0.995] transition-colors duration-150 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-blue)]/50 ${market.closed ? 'opacity-40 pointer-events-none' : ''}`}
+      className={`grid grid-cols-[36px,1fr,80px,52px] md:grid-cols-[44px,1fr,96px,76px,84px,84px,60px] gap-2 md:gap-3 items-center px-3 py-1.5 border-b border-white/[0.04] hover:bg-white/[0.05] active:scale-[0.995] transition-colors duration-150 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-blue)]/50 ${market.closed ? 'opacity-40 pointer-events-none' : ''}`}
     >
       {/* Thumbnail */}
       <img
         src={img}
-        className="w-10 h-7 md:w-12 md:h-9 rounded-[3px] object-cover bg-[var(--bg-secondary)] shrink-0"
+        className="w-9 h-6 md:w-11 md:h-8 rounded-sm object-cover bg-[var(--bg-secondary)] shrink-0"
         loading="lazy"
         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         alt={question || ''}
       />
 
-      {/* Title + tags */}
-      <div className="min-w-0">
-        <div className="text-[11px] md:text-[12px] font-semibold leading-tight line-clamp-2 text-white/90 group-hover:text-white transition-colors">
+      {/* Title + meta in one line */}
+      <div className="min-w-0 flex items-center gap-2">
+        <span className="text-[11px] md:text-[12px] font-medium leading-tight line-clamp-1 text-white/90 group-hover:text-white transition-colors">
           {question || '—'}
-        </div>
-        <div className="flex gap-1 mt-0.5 flex-wrap">
-          {cat && (
-            <span className="text-[8px] md:text-[9px] px-1.5 py-px rounded-sm bg-white/[0.04] text-white/35 tracking-wide uppercase">
-              {cat}
-            </span>
-          )}
-          {isUrgent && (
-            <span className="text-[8px] md:text-[9px] px-1.5 py-px rounded-sm bg-red-500/10 text-red-400/80 font-medium inline-flex items-center gap-0.5">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-              即将到期
-            </span>
-          )}
-          {market.closed && (
-            <span className="text-[8px] md:text-[9px] px-1.5 py-px rounded-sm bg-white/[0.03] text-white/25">{t('time.ended')}</span>
-          )}
-        </div>
+        </span>
+        {isUrgent && (
+          <span className="shrink-0 text-[9px] px-1.5 py-px rounded-sm bg-red-500/10 text-red-400/80 font-medium">
+            即将到期
+          </span>
+        )}
+        {market.closed && (
+          <span className="shrink-0 text-[9px] px-1.5 py-px rounded-sm bg-white/[0.03] text-white/25">{t('time.ended')}</span>
+        )}
       </div>
 
       {/* Probability — signature: bold number */}
@@ -123,10 +115,10 @@ export function MarketRow({ market, index, pool }: MarketRowProps) {
         {isBinary ? (
           <>
             <div
-              className="text-base md:text-lg font-black tabular-nums leading-none"
+              className="text-sm md:text-base font-black tabular-nums leading-none"
               style={{ color: yesPct >= 50 ? '#22c55e' : '#ef4444' }}
             >
-              {yesPct}<span className="text-[9px] opacity-40">%</span>
+              {yesPct}<span className="text-[8px] opacity-40">%</span>
             </div>
             <div className="h-0.5 mt-0.5 rounded-full bg-white/[0.06] overflow-hidden hidden md:block">
               <div
