@@ -70,6 +70,13 @@ function RootLayoutInner({
           <Providers>
             <Navbar />
             <main className="flex-1">{children}</main>
+            <footer className="border-t border-[var(--border)] px-4 py-4 text-center text-[11px] text-[var(--text-muted)]">
+              <span>PrediX © 2026</span>
+              <span className="mx-3 opacity-30">|</span>
+              <a href="mailto:predixservice@outlook.com" className="hover:text-[var(--accent-blue)] transition-colors">
+                predixservice@outlook.com
+              </a>
+            </footer>
           </Providers>
         </ErrorBoundary>
       </body>
