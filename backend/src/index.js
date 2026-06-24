@@ -103,6 +103,14 @@ app.use(cors({ origin: config.corsOrigin, credentials: true }));
 app.use(compression({ threshold: 0, level: 6 })); // 确保所有响应都被 gzip 压缩
 app.use(express.json({ limit: '1mb' })); // 限制请求体大小，防止大 payload 攻击
 
+// 静态数据缓存 — GET 请求默认缓存 30s，减轻服务器压力
+app.use('/api', (req, res, next) => {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+  }
+  next();
+});
+
 // 全局速率限制（所有 API 路由）
 app.use('/api', globalLimiter);
 

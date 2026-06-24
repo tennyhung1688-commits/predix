@@ -65,6 +65,14 @@ function RootLayoutInner({
       className={`${dmSans.variable} ${spaceGrotesk.variable} h-full antialiased`}
       style={{ colorScheme: 'dark' }}
     >
+      <head>
+        <link rel="dns-prefetch" href="https://pixabay.com" />
+        <link rel="dns-prefetch" href="https://loremflickr.com" />
+        <link rel="dns-prefetch" href="https://predix-backend-0faz.onrender.com" />
+        <link rel="preconnect" href="https://pixabay.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://loremflickr.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://predix-backend-0faz.onrender.com" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <PageViewTracker />
         <ErrorBoundary>
