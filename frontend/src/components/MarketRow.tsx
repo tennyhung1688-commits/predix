@@ -76,7 +76,7 @@ export function MarketRow({ market, index, pool }: MarketRowProps) {
   const ask = market.bestAsk ? parseFloat(market.bestAsk) : null;
 
   const img = (() => {
-    if (pool?.length) return pool[index % pool.length]?.url ?? '';
+    if (pool?.length) return pool[index % pool.length]?.thumb ?? '';
     const seed = (market.id || index + '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) || 'fallback';
     return `https://loremflickr.com/96/72?lock=${seed}`;
   })();

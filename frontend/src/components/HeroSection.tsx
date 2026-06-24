@@ -179,7 +179,7 @@ export function HeroSection({ markets }: HeroSectionProps) {
               const mCategory = mTags[0]?.label || '';
               const mVolume = parseFloat(m.volume24hr || m.volume || '0');
               const mImageSeed = m.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'hero';
-              const mImageUrl = `https://loremflickr.com/1200/630?random=${mImageSeed}`;
+              const mImageUrl = `https://loremflickr.com/640/336?random=${mImageSeed}`;
 
               return (
                 <div key={m.id || m.conditionId} className="w-full flex-shrink-0">
@@ -192,8 +192,8 @@ export function HeroSection({ markets }: HeroSectionProps) {
                       <img
                         src={mImageUrl}
                         alt={mTitle}
-                        width={1200}
-                        height={630}
+                        width={640}
+                        height={336}
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover/card:scale-105"
                         fetchPriority="high"
                       />
