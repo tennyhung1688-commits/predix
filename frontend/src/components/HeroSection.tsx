@@ -180,7 +180,7 @@ export function HeroSection({ markets }: HeroSectionProps) {
               const mVolume = parseFloat(m.volume24hr || m.volume || '0');
               const mImageSeed = m.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'hero';
               const mCatSlug = (mTags[0]?.slug || mCategory || 'news').toLowerCase();
-              const HERO_KEYWORDS: Record<string, string> = { sports: 'sports', politics: 'politics', crypto: 'cryptocurrency', science: 'science', technology: 'technology', entertainment: 'entertainment', business: 'business', world: 'world+news', economics: 'business', weather: 'weather', gaming: 'gaming' };
+              const HERO_KEYWORDS: Record<string, string> = { sports: 'sports,stadium,team,athlete', politics: 'politics,government,vote,election', crypto: 'bitcoin,blockchain,digital,finance', science: 'science,laboratory,research', technology: 'technology,computer,AI,future', entertainment: 'entertainment,movie,music,show', business: 'business,office,corporate,meeting', world: 'world,news,global', economics: 'business,finance,stock+market,money', weather: 'weather,storm,sky,climate', gaming: 'gaming,esports,video+game' };
               const heroKeyword = HERO_KEYWORDS[mCatSlug] || mCatSlug;
               const mImageUrl = `https://loremflickr.com/640/336/${heroKeyword}?lock=${mImageSeed}`;
 

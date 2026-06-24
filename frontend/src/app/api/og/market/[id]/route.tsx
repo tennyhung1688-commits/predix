@@ -39,10 +39,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Use category as keyword for relevant cover image
     const tagKey = (cat || '').toLowerCase();
     const KEYWORD_MAP: Record<string, string> = {
-      sports: 'sports', politics: 'politics', crypto: 'cryptocurrency',
-      science: 'science', technology: 'technology', entertainment: 'entertainment',
-      business: 'business', world: 'world+news', economics: 'business',
-      weather: 'weather', gaming: 'gaming',
+      sports: 'sports,stadium,game,team,athlete',
+      politics: 'politics,government,vote,election',
+      crypto: 'bitcoin,blockchain,digital,finance,technology',
+      science: 'science,laboratory,research,discovery',
+      technology: 'technology,computer,AI,future,digital',
+      entertainment: 'entertainment,movie,music,show',
+      business: 'business,office,corporate,meeting',
+      world: 'world,news,global,international',
+      economics: 'business,finance,stock+market,money',
+      weather: 'weather,storm,sky,climate',
+      gaming: 'gaming,esports,video+game',
     };
     const keyword = KEYWORD_MAP[tagKey] || 'news';
     const seed = (m.id || id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'predix';
