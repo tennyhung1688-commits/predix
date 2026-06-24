@@ -179,7 +179,10 @@ export function HeroSection({ markets }: HeroSectionProps) {
               const mCategory = mTags[0]?.label || '';
               const mVolume = parseFloat(m.volume24hr || m.volume || '0');
               const mImageSeed = m.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'hero';
-              const mImageUrl = `https://loremflickr.com/640/336?random=${mImageSeed}`;
+              const mCatSlug = (mTags[0]?.slug || mCategory || 'news').toLowerCase();
+              const HERO_KEYWORDS: Record<string, string> = { sports: 'sports', politics: 'politics', crypto: 'cryptocurrency', science: 'science', technology: 'technology', entertainment: 'entertainment', business: 'business', world: 'world+news', economics: 'business', weather: 'weather', gaming: 'gaming' };
+              const heroKeyword = HERO_KEYWORDS[mCatSlug] || mCatSlug;
+              const mImageUrl = `https://loremflickr.com/640/336/${heroKeyword}?lock=${mImageSeed}`;
 
               return (
                 <div key={m.id || m.conditionId} className="w-full flex-shrink-0">
