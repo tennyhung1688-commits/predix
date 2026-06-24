@@ -276,6 +276,33 @@ const TERM_MAP = {
   'Monday': '周一', 'Tuesday': '周二', 'Wednesday': '周三',
   'Thursday': '周四', 'Friday': '周五', 'Saturday': '周六', 'Sunday': '周日',
   'weekend': '周末',
+  // 加密货币/DeFi
+  'FDV': '完全稀释估值',
+  'memecoin': '迷因币',
+  'memecoin season': '迷因币季节',
+  'altcoin': '山寨币',
+  'alt season': '山寨季',
+  'stablecoin': '稳定币',
+  'DeFi': '去中心化金融',
+  'NFT': 'NFT',
+  'airdrop': '空投',
+  'staking': '质押',
+  'halving': '减半',
+  'one day after': '一天后',
+  'one day': '一天',
+  'one week': '一周',
+  'one month': '一个月',
+  'three days': '三天',
+  'seven days': '七天',
+  'two weeks': '两周',
+  // 通用
+  'above': '高于', 'below': '低于',
+  'at least': '至少', 'more than': '超过',
+  'price of': '价格',
+  // 单位
+  'million': '百万', 'billion': '亿',
+  'trillion': '万亿',
+  'K': '千', 'M': '百万', 'B': '十亿',
 };
 
 // 翻译缓存
@@ -443,6 +470,36 @@ function translateByPattern(text) {
     return `${thing}价格在${date}前${direction}$${price}吗？`;
   }
 
+  // "the price of X be above/below $Y on Z?" → "X价格在Z高于/低于$Y吗？"
+  match = result.match(/^the price of (.+?) be (above|below) \$?([\d,.]+[KMB]?) on (.+?)\??$/i);
+  if (match) {
+    const thing = translateTerms(match[1]);
+    const direction = match[2] === 'above' ? '高于' : '低于';
+    const price = match[3];
+    const date = translateTerms(match[4]);
+    return `${thing}价格在${date}${direction}$${price}吗？`;
+  }
+
+  // "X above/below $Y one day after Z?" → "X在Z一天后高于/低于$Y吗？"
+  match = result.match(/^(.+?) (above|below) \$?([\d,.]+[KMBM]?) (.+?) after (.+?)\??$/i);
+  if (match) {
+    const thing = translateTerms(match[1]);
+    const direction = match[2] === 'above' ? '高于' : '低于';
+    const price = match[3];
+    const timeframe = translateTerms(match[4]);
+    const event = translateTerms(match[5]).replace(/\?/g, '');
+    return `${thing}在${event}${timeframe}后${direction}$${price}吗？`;
+  }
+
+  // "X above/below $Y?" or "X above/below Y%?" → "X高于/低于Y吗？"
+  match = result.match(/^(.+?) (above|below) \$?([\d,.]+[KMB]?%?)\??$/i);
+  if (match) {
+    const thing = translateTerms(match[1]);
+    const direction = match[2] === 'above' ? '高于' : '低于';
+    const price = match[3];
+    return `${thing}${direction}${price}吗？`;
+  }
+
   // 无法匹配，返回 null（走 API 兜底）
   return null;
 }
@@ -489,24 +546,26 @@ async function translateText(text, options = {}) {
     return patternResult;
   }
 
-  // 应用词典翻译（作为基础兜底）
-  let dictResult = translateNames(translateTerms(text));
-  if (dictResult !== text) {
-    setCache(text, dictResult);
-    return dictResult;
-  }
+  // 应用词典翻译（词级替换，不缓存——因为可能只是部分翻译）
+  const dictResult = translateNames(translateTerms(text));
 
-  // API 兜底（默认开启）
+  // API 兜底（默认开启）— 词典替换可能不完整，需要 API 翻译完整句子
   if (options.useApi !== false) {
     try {
-      const apiResult = await translateViaApi(text);
+      const apiResult = await translateViaApi(dictResult);
       if (apiResult) {
         setCache(text, apiResult);
         return apiResult;
       }
     } catch {
-      // API 失败，返回原文
+      // API 失败，用词典结果兜底
     }
+  }
+
+  // API 失败或无 API → 返回词典结果
+  if (dictResult !== text) {
+    setCache(text, dictResult);
+    return dictResult;
   }
 
   // 完全无法翻译，返回原文
@@ -525,7 +584,6 @@ async function translateViaApi(text) {
 
   if (data?.responseData?.translatedText) {
     const translated = data.responseData.translatedText;
-    // 如果翻译结果和原文一样，说明 API 也没翻译成功
     if (translated.toLowerCase() !== text.toLowerCase()) {
       return translated;
     }
