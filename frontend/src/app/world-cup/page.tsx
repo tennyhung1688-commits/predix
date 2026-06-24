@@ -175,7 +175,6 @@ export default function WorldCupPage() {
   // 页面挂载时立即拉取市场数据（统计栏常驻，不随 Tab 切换清空）
   useEffect(() => {
     fetchMarkets();
-      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
