@@ -31,11 +31,13 @@ export const metadata: Metadata = {
     siteName: 'PrediX',
     locale: 'zh_CN',
     type: 'website',
+    images: [{ url: 'https://predix.eu.cc/api/og/home', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'PrediX — 全球预测市场交易平台',
     description: '在 Polymarket 上交易世界杯、政治、加密等预测市场。实时概率、真实赔率。',
+    images: ['https://predix.eu.cc/api/og/home'],
   },
   alternates: {
     languages: {
