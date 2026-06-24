@@ -9,7 +9,6 @@ function formatVolume(v: number): string {
   return v.toFixed(0);
 }
 
-// Fetch from Render backend
 const BACKEND = process.env.NEXT_PUBLIC_API_URL || 'https://predix-backend-0faz.onrender.com/api';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -22,16 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const json = await resp.json();
     const m = json?.data;
 
-    if (!m) {
-      return new ImageResponse(
-        (
-          <div style={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f' }}>
-            <span style={{ color: '#666', fontSize: 32 }}>PrediX</span>
-          </div>
-        ),
-        { width: 1200, height: 630 }
-      );
-    }
+    if (!m) return fallbackCard();
 
     const question = (m.question_zh || m.question || m.title || '').slice(0, 100);
     const outcomes = Array.isArray(m.outcomes) ? m.outcomes : (() => { try { return JSON.parse(m.outcomes || '[]'); } catch { return []; } })();
@@ -41,7 +31,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const tags = Array.isArray(m.tags) ? m.tags : [];
     const cat = tags[0]?.label || '';
 
-    const yesPct = isBinary && prices[0] ? Math.round(prices[0] * 100) : 0;
+    const yesPct = isBinary && prices[0] ? Math.round(prices[0] * 100) : null;
+    const noPct = isBinary && prices[1] ? Math.round(prices[1] * 100) : null;
+    const yesPrice = isBinary && prices[0] ? (prices[0] * 100).toFixed(1) : null;
+    const noPrice = isBinary && prices[1] ? (prices[1] * 100).toFixed(1) : null;
+
+    // Use market id as seed for deterministic cover image
+    const seed = (m.id || id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'predix';
+    const coverImg = `https://loremflickr.com/600/630?lock=${seed}`;
 
     return new ImageResponse(
       (
@@ -50,154 +47,209 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             height: '100%',
             width: '100%',
             display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-end',
-            background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1030 50%, #0f1729 100%)',
+            background: '#0f0f1a',
             fontFamily: 'system-ui, -apple-system, sans-serif',
-            padding: 64,
-            position: 'relative',
-            overflow: 'hidden',
           }}
         >
-          {/* Ambient glow */}
-          <div style={{ position: 'absolute', top: -120, right: -120, width: 500, height: 500, borderRadius: '50%', background: 'rgba(79,143,255,0.06)', filter: 'blur(80px)' }} />
-          <div style={{ position: 'absolute', bottom: -80, left: -80, width: 400, height: 400, borderRadius: '50%', background: 'rgba(168,85,247,0.05)', filter: 'blur(80px)' }} />
+          {/* Left: Cover image */}
+          <div style={{ width: '50%', height: '100%', display: 'flex', position: 'relative', overflow: 'hidden' }}>
+            <img
+              src={coverImg}
+              width={600}
+              height={630}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+            {/* Gradient overlay */}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(15,15,26,0) 70%, #0f0f1a 100%)' }} />
+          </div>
 
-          {/* Category badge */}
-          {cat && (
+          {/* Right: Market info card */}
+          <div
+            style={{
+              width: '50%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              padding: '48px 56px 48px 20px',
+              background: '#0f0f1a',
+            }}
+          >
+            {/* Category badge */}
+            {cat && (
+              <div
+                style={{
+                  display: 'flex',
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: 8,
+                    background: 'rgba(79,143,255,0.12)',
+                    color: '#4f8fff',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {cat}
+                </div>
+              </div>
+            )}
+
+            {/* Question */}
+            <div
+              style={{
+                fontSize: 26,
+                fontWeight: 700,
+                color: '#f1f5f9',
+                lineHeight: 1.3,
+                marginBottom: 28,
+                letterSpacing: '-0.01em',
+                display: '-webkit-box',
+                overflow: 'hidden',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+              }}
+            >
+              {question}
+            </div>
+
+            {/* "Probability" label */}
+            <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Probability
+            </div>
+
+            {/* Yes/No row */}
+            {isBinary ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+                {/* Yes bar */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    background: 'rgba(34,197,94,0.1)',
+                    border: '1px solid rgba(34,197,94,0.2)',
+                  }}
+                >
+                  <span style={{ fontSize: 16, fontWeight: 600, color: '#22c55e' }}>Yes</span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: '#22c55e' }}>{yesPct}%</span>
+                    <span style={{ fontSize: 13, color: 'rgba(34,197,94,0.5)' }}>{yesPrice}¢</span>
+                  </div>
+                </div>
+
+                {/* No bar */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    background: 'rgba(239,68,68,0.08)',
+                    border: '1px solid rgba(239,68,68,0.15)',
+                  }}
+                >
+                  <span style={{ fontSize: 16, fontWeight: 600, color: '#ef4444' }}>No</span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>{noPct}%</span>
+                    <span style={{ fontSize: 13, color: 'rgba(239,68,68,0.5)' }}>{noPrice}¢</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+                {outcomes.slice(0, 4).map((outcome: string, i: number) => (
+                  <div key={i} style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: 14 }}>
+                    {outcome.slice(0, 15)}
+                    {prices[i] != null && (
+                      <span style={{ color: '#f1f5f9', fontWeight: 700, marginLeft: 6 }}>{Math.round(prices[i] * 100)}%</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Volume */}
+            {vol !== '0' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5">
+                  <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+                <span style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>{vol} vol 24h</span>
+              </div>
+            )}
+
+            {/* Bottom branding */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                marginBottom: 24,
+                justifyContent: 'space-between',
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+                paddingTop: 16,
+                marginTop: 'auto',
               }}
             >
-              <div
-                style={{
-                  padding: '6px 16px',
-                  borderRadius: 20,
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: '#94a3b8',
-                  fontSize: 18,
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                {cat}
-              </div>
-            </div>
-          )}
-
-          {/* Probability — big centered number */}
-          {isBinary ? (
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
-              <span
-                style={{
-                  fontSize: 128,
-                  fontWeight: 900,
-                  color: yesPct >= 50 ? '#22c55e' : '#ef4444',
-                  lineHeight: 1,
-                  letterSpacing: '-0.03em',
-                }}
-              >
-                {yesPct}
-              </span>
-              <span style={{ fontSize: 40, color: yesPct >= 50 ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)', fontWeight: 700 }}>
-                %
-              </span>
-              <span style={{ fontSize: 24, color: 'rgba(255,255,255,0.4)', marginLeft: 8, fontWeight: 500 }}>
-                {outcomes[0]}
-              </span>
-            </div>
-          ) : null}
-
-          {/* Market question */}
-          <div
-            style={{
-              fontSize: 32,
-              fontWeight: 700,
-              color: '#f1f5f9',
-              lineHeight: 1.3,
-              maxWidth: '90%',
-              marginBottom: 16,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {question}
-          </div>
-
-          {/* Volume */}
-          {vol !== '0' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 40 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2">
-                <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-              </svg>
-              <span style={{ fontSize: 20, color: '#64748b', fontWeight: 600 }}>{vol} vol 24h</span>
-            </div>
-          )}
-
-          {/* Bottom bar — PrediX branding */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              paddingTop: 24,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {/* Logo */}
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: 'linear-gradient(135deg, #4f8fff, #a855f7)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 22,
-                  fontWeight: 900,
-                  color: 'white',
-                }}
-              >
-                P
-              </div>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em' }}>
-                  Predi<span style={{ background: 'linear-gradient(135deg, #4f8fff, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>X</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 7,
+                    background: 'linear-gradient(135deg, #4f8fff, #a855f7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 15,
+                    fontWeight: 900,
+                    color: 'white',
+                  }}
+                >
+                  P
                 </div>
-                <div style={{ fontSize: 14, color: '#475569', marginTop: 2 }}>预测市场交易平台</div>
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#f1f5f9' }}>
+                  Predi<span style={{ background: 'linear-gradient(135deg, #4f8fff, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>X</span>
+                </span>
               </div>
-            </div>
-            <div style={{ fontSize: 16, color: '#475569' }}>
-              predix.eu.cc
-            </div>
-          </div>
-        </div>
-      ),
-      {
-        width: 1200,
-        height: 630,
-      }
-    );
-  } catch {
-    return new ImageResponse(
-      (
-        <div style={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #4f8fff, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: 'white' }}>P</div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: '#f1f5f9' }}>
-              Predi<span style={{ background: 'linear-gradient(135deg, #4f8fff, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>X</span>
+              <span style={{ fontSize: 12, color: '#475569' }}>predix.eu.cc</span>
             </div>
           </div>
         </div>
       ),
       { width: 1200, height: 630 }
     );
+  } catch {
+    return fallbackCard();
   }
+}
+
+function fallbackCard() {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#0f0f1a',
+          gap: 16,
+        }}
+      >
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #4f8fff, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: 'white' }}>P</div>
+        <div style={{ fontSize: 36, fontWeight: 800, color: '#f1f5f9' }}>
+          Predi<span style={{ background: 'linear-gradient(135deg, #4f8fff, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>X</span>
+        </div>
+      </div>
+    ),
+    { width: 1200, height: 630 }
+  );
 }
