@@ -40,6 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return {
       title: `${question} — PrediX`,
       description: desc,
+      metadataBase: new URL(baseUrl),
       openGraph: {
         title: question,
         description: desc,
@@ -47,7 +48,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         siteName: 'PrediX',
         locale: 'zh_CN',
         type: 'article',
-        images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+        images: [{
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          type: 'image/png',
+          alt: question,
+        }],
       },
       twitter: {
         card: 'summary_large_image',

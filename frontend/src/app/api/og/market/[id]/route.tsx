@@ -36,9 +36,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const yesPrice = isBinary && prices[0] ? (prices[0] * 100).toFixed(1) : null;
     const noPrice = isBinary && prices[1] ? (prices[1] * 100).toFixed(1) : null;
 
-    // Use market id as seed for deterministic cover image
+    // Use category as keyword for relevant cover image
+    const tagKey = (cat || '').toLowerCase();
+    const KEYWORD_MAP: Record<string, string> = {
+      sports: 'sports', politics: 'politics', crypto: 'cryptocurrency',
+      science: 'science', technology: 'technology', entertainment: 'entertainment',
+      business: 'business', world: 'world+news', economics: 'business',
+      weather: 'weather', gaming: 'gaming',
+    };
+    const keyword = KEYWORD_MAP[tagKey] || 'news';
     const seed = (m.id || id).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'predix';
-    const coverImg = `https://loremflickr.com/600/630?lock=${seed}`;
+    const coverImg = `https://loremflickr.com/600/630/${keyword}?lock=${seed}`;
 
     return new ImageResponse(
       (
