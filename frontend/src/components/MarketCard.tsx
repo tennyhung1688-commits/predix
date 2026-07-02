@@ -90,9 +90,12 @@ export function MarketCard({ market, href, onClick }: MarketCardProps) {
       const idx = parseInt(market.id || '0', 10) % pool.length;
       return pool[idx].url;
     }
-    // Fallback while pool loads — deterministic random seed
+    // Fallback while pool loads — uses category keyword
     const seed = market.id?.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) || 'fallback';
-    return `https://loremflickr.com/800/450?lock=${seed}`;
+    const catSlug = (tags[0]?.slug || tags[0]?.label || '').toLowerCase();
+    return catSlug
+      ? `https://loremflickr.com/800/450/${catSlug}?lock=${seed}`
+      : `https://loremflickr.com/800/450?lock=${seed}`;
   })();
 
   const cardContent = (

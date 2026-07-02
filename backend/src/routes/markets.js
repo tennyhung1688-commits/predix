@@ -289,7 +289,7 @@ router.get('/images/pool', async (req, res) => {
           data.hits.forEach(h => {
             // 排除动物 / 宠物图片
             const tags = (h.tags || '').toLowerCase();
-            const blocked = /animal|cat|dog|bird|fish|pet|wildlife|insect|butterfly|horse|rabbit|squirrel|deer|wolf|fox|bear|lion|tiger|elephant/i;
+            const blocked = /animal|cat|dog|bird|fish|pet|wildlife|insect|butterfly|horse|rabbit|squirrel|deer|wolf|fox|bear|lion|tiger|elephant|puppy|kitten|zoo|fauna|mammal|reptile|amphibian|snake|lizard|frog|monkey|ape|gorilla|whale|dolphin|shark|octopus|penguin|parrot|eagle|owl|hen|rooster|chicken|cow|pig|sheep|goat|duck|swan|peacock|flamingo/i;
             if (blocked.test(tags)) return;
             images.push({ url: h.webformatURL.replace('_640', '_340'), thumb: h.previewURL, id: h.id, tags: h.tags });
           });

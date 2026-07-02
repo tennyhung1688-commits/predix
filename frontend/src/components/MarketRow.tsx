@@ -78,7 +78,10 @@ export function MarketRow({ market, index, pool }: MarketRowProps) {
   const img = (() => {
     if (pool?.length) return pool[index % pool.length]?.thumb ?? '';
     const seed = (market.id || index + '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) || 'fallback';
-    return `https://loremflickr.com/96/72?lock=${seed}`;
+    const catSlug = (tags[0]?.slug || tags[0]?.label || '').toLowerCase();
+    return catSlug
+      ? `https://loremflickr.com/96/72/${catSlug}?lock=${seed}`
+      : `https://loremflickr.com/96/72?lock=${seed}`;
   })();
 
   return (
